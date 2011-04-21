@@ -9,6 +9,7 @@ import Control.Concurrent
 
 import Yawn.Data as Y
 import Yawn.Logger as L
+import Yawn.Parser as P
 
 run :: Y.Configuration -> IO ()
 run (Y.Configuration port _) = do
@@ -28,17 +29,16 @@ work h n p = do
   L.info $ "Accepting connection: " ++ n ++ ":" ++ show p
   i <- readInput h
   L.debug $ "Received: " ++ (show i)
-  hClose h
+  let request = P.parseRequest i in hClose h
 
-readInput :: Handle -> IO ([String])
+readInput :: Handle -> IO (String)
 readInput h = do
   input <- hGetLine h
-  if endOfRequest input then return []
-  else readInput h >>= \rest -> return $ (stripLineFeeds input):rest
+  if endOfRequest input then return ""
+  else readInput h >>= \rest -> return $ (stripLineFeeds input) ++ rest
       
 endOfRequest :: String -> Bool
 endOfRequest s = s == "\r" || s == "\n" || s == "\r\n"
 
 stripLineFeeds :: String -> String
 stripLineFeeds = filter ('\r' /=) . filter ('\n' /=)
-
