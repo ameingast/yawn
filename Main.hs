@@ -1,8 +1,10 @@
 module Main(main) where
 
-import Yawn.Data as D
-import Yawn.Server as S
+import Directory
+import Yawn.Data 
+import Yawn.Server as Server
 
 main :: IO()
 main = do
-    let configuration = D.Configuration 9000 "localhost" in S.run configuration 
+  dir <- getCurrentDirectory
+  Server.run $ Configuration 9000 "localhost" dir 

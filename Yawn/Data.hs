@@ -1,8 +1,9 @@
 module Yawn.Data where
 
 data Configuration = Configuration { 
-  portNumber :: Integer,
-  host :: String
+  port :: Integer,
+  host :: String,
+  root :: FilePath
 } deriving (Show, Eq)
 
 data Request = Request {
