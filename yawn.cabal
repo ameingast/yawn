@@ -14,6 +14,7 @@ Executable yawn
     Main-is:        Main.hs
     ghc-options:    -Wall -fno-warn-unused-do-bind
     Build-Depends:  network
+    Build-Depends:  parsec
     Build-Depends:  base >= 4 
     Build-Depends:  haskell98
 
