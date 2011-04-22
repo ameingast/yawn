@@ -2,38 +2,42 @@ module Yawn.Server(
   run
 ) where
 
-import Network
-import System.IO
 import Control.Exception
 import Control.Concurrent
-
+import Network
+import System.IO
 import Yawn.Data
 import Yawn.Logger as Log
 import Yawn.Parser as Parser
 
 run :: Configuration -> IO ()
-run (Configuration port _) = do
-  bracket (listenOn $ PortNumber p) sClose f
-    where p = fromIntegral port 
-          f s = (Log.debug $ "Opened socket on port: " ++ show p) >> loop s
+run c = let p = (listenOn . PortNumber . fromIntegral . port) c 
+        in bracket p sClose startSocket
 
-loop :: Socket -> IO ()
-loop socket = do
+startSocket :: Socket -> IO ()
+startSocket s = do
+  (Log.debug $ "Listening on port: " ++ show s)
+  lock <- newMVar ()
+  loop s lock
+
+loop :: Socket -> MVar () -> IO ()
+loop socket l = do
   (h, n, p) <- accept socket
   Log.info $ "Accepted connection: " ++ n ++ ":" ++ show p
   hSetBuffering h NoBuffering
-  startWorker h n p
-  loop socket
+  startWorker l h n p
+  loop socket l
 
-startWorker :: Handle -> String -> PortNumber -> IO (ThreadId)
-startWorker h n p = forkIO $ work h n p
+startWorker :: MVar () -> Handle -> String -> PortNumber -> IO (ThreadId)
+startWorker l h n p = forkIO $ work l h n p
 
-work :: Handle -> HostName -> PortNumber -> IO ()
-work h n p = do
+work :: MVar () -> Handle -> HostName -> PortNumber -> IO ()
+work l h n p = do
   i <- readInput h
   Log.info $ "Received: " ++ i
-  let pRequest= Parser.parseRequest i
-  Log.debug $ "Parsed: " ++ show pRequest
+  case Parser.parseRequest i of
+    Left e  -> Log.err e
+    Right r -> (Log.debug $ "Parsed: " ++ show r) >> dispatchRequest l r h
   hClose h
 
 readInput :: Handle -> IO (String)
@@ -42,3 +46,15 @@ readInput h = do
   -- '\n' is stripped via hGetLine
   if input == "\r" then return "\r\n"
   else readInput h >>= \rest -> return $ input ++ rest
+
+dispatchRequest :: MVar () -> Request -> Handle -> IO ()
+dispatchRequest l r h = case method(r) of
+                          GET -> getResource l r h
+                          _ -> Log.err $ "Unsupported request" ++ show r
+
+getResource :: MVar () -> Request -> Handle -> IO ()
+getResource l r h = do
+  f <- readFile filePath 
+  withMVar l (\a -> hPutStr h f >> return a)
+  where filePath = "Main.hs"
+
