@@ -4,17 +4,19 @@ module Yawn.Logger(
   err
 ) where
 
-info :: Show a => a -> IO (a)
-info s = do
-    putStrLn $ "[I] " ++ show s
-    return s
+import Time
 
-debug :: Show a => a -> IO (a)
-debug s = do
-  putStrLn $ "[D] " ++ show s
-  return s
+info :: Show a => a -> IO ()
+info s = formatMessage s "info" >>= putStrLn
 
-err :: Show a => a -> IO (a)
-err s = do
-  putStrLn $ "[E] " ++ show s
-  return s
+debug :: Show a => a -> IO ()
+debug s = formatMessage s "debug" >>= putStrLn
+
+err :: Show a => a -> IO ()
+err s = formatMessage s "error" >>= putStrLn
+
+formatMessage :: Show a => a -> String -> IO (String)
+formatMessage s ch = time >>= \t -> return $ "[" ++ t ++ "] [" ++ ch ++ "] " ++ show s
+
+time :: IO String
+time = getClockTime >>= toCalendarTime >>= (return . calendarTimeToString)

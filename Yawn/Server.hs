@@ -7,20 +7,20 @@ import System.IO
 import Control.Exception
 import Control.Concurrent
 
-import Yawn.Data as D
-import Yawn.Logger as L
-import Yawn.Parser as P
+import Yawn.Data
+import Yawn.Logger as Log
+import Yawn.Parser as Parser
 
-run :: D.Configuration -> IO ()
-run (D.Configuration port _) = do
+run :: Configuration -> IO ()
+run (Configuration port _) = do
   bracket (listenOn $ PortNumber p) sClose f
     where p = fromIntegral port 
-          f s = (L.debug $ "Opened socket on port: " ++ show p) >> loop s
+          f s = (Log.debug $ "Opened socket on port: " ++ show p) >> loop s
 
 loop :: Socket -> IO ()
 loop socket = do
   (h, n, p) <- accept socket
-  L.info $ "Accepted connection: " ++ n ++ ":" ++ show p
+  Log.info $ "Accepted connection: " ++ n ++ ":" ++ show p
   hSetBuffering h NoBuffering
   startWorker h n p
   loop socket
@@ -31,9 +31,9 @@ startWorker h n p = forkIO $ work h n p
 work :: Handle -> HostName -> PortNumber -> IO ()
 work h n p = do
   i <- readInput h
-  L.info $ "Received: " ++ i
-  let pRequest= P.parseRequest i
-  L.debug $ "Parsed: " ++ show pRequest
+  Log.info $ "Received: " ++ i
+  let pRequest= Parser.parseRequest i
+  Log.debug $ "Parsed: " ++ show pRequest
   hClose h
 
 readInput :: Handle -> IO (String)
