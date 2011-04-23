@@ -7,4 +7,4 @@ import Yawn.Server as Server
 main :: IO()
 main = do
   dir <- getCurrentDirectory
-  Server.run $ Configuration 9000 "localhost" dir 
+  Server.run $ Configuration 9000 "localhost" (dir ++ "/www")
