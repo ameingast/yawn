@@ -22,9 +22,12 @@ makeContext c l h = Context c get' put' close'
                   Log.debug $ "Responding: " ++ s
                   withMVar l (\a -> hPutStr h s >> return a)
         close' = hClose h
-        -- TODO: handle hGetLine exceptions with try
-        get' = hGetLine h >>= \i -> if i == "\r" then return "\r\n"
-                                    else get' >>= \r -> return $ i ++ r
+        get' = do 
+          tryInput <- System.IO.Error.try (hGetLine h)
+          case tryInput of
+            Left e -> Log.err e >> return ""
+            Right i -> if i == "\r" then return "\r\n"
+                       else get' >>= \r -> return $ i ++ r
 
 startSocket :: Socket -> Configuration -> IO ()
 startSocket socket conf = do
@@ -45,7 +48,7 @@ work ctx  = do
   i <- get ctx
   Log.info $ "Received: " ++ i
   case Parser.parseRequest i of
-    Left e  -> dispatchError ctx BAD_REQUEST e
+    Left e  -> dispatchError ctx BAD_REQUEST "" 
     Right r -> (Log.debug $ "Parsed: " ++ show r) >> dispatchRequest ctx r
   close ctx
 
