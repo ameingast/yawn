@@ -1,9 +1,10 @@
 ## TODO
 
 ### General
-* Files
-* Routing
-* Servlet Type Class
+* File Serving (Server.hs)
+* Routing (Routing.hs)
+* Servlet Type Class (Servlet.hs)
+* Multiple instances running on N sockets (Server.hs)
 
 #### Server.hs
 * checkResourcePath :: Configuration -> FilePath -> Bool
