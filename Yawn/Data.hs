@@ -1,5 +1,7 @@
 module Yawn.Data where
 
+import Yawn.Util
+
 data Configuration = Configuration { 
   port :: Integer,
   host :: String,
@@ -15,9 +17,6 @@ data Context = Context {
 
 instance Show Context where
   show = show . configuration
-
-instance Eq Context where
-  a == b = configuration a == configuration b
 
 data Request = Request {
   method :: RequestMethod,
@@ -35,13 +34,9 @@ data RequestMethod =  GET |
                       CONNECT |
                       TRACE deriving (Show, Eq)
 
-data RequestUri = STAR | 
-                  ABSOLUTE_URI String | 
-                  ABSOLUTE_PATH String | 
-                  AUTHORITY deriving (Show, Eq)
+data RequestUri = RequestUri String deriving (Show, Eq)
 
-data HttpVersion =  HTTP_1_0 | 
-                    HTTP_1_1 deriving Eq 
+data HttpVersion =  HTTP_1_0 | HTTP_1_1 deriving Eq 
 
 instance Show HttpVersion where
   show HTTP_1_0 = "HTTP/1.0"
@@ -71,48 +66,34 @@ data RequestHeader =  ACCEPT String |
 
 data Response = Response {
   statusCode :: StatusCode,
+  entityHeaders :: [ResponseHeader],
   body :: String
 } deriving Eq
 
 instance Show Response where
-  show (Response sc b) = "HTTP/1.1" ++ show sc ++ "\r\n\r\n" ++ b 
+  show (Response sc hs b) = show HTTP_1_1 ++ " " ++ show sc ++ 
+                            concatWith "\n" hs ++ "\r\n\r\n" ++ b 
 
-data StatusCode = 
-  -- 200
-  OK |
-  -- 201
-  CREATED |
-  -- 202
-  ACCEPTED |
-  -- 400
-  BAD_REQUEST |
-  -- 401
-  UNAUTHORIZED |
-  -- 403
-  FORBIDDEN |
-  -- 404
-  NOT_FOUND |
-  -- 405
-  METHOD_NOT_ALLOWED deriving Eq
+data StatusCode = OK |
+                  CREATED |
+                  ACCEPTED |
+                  BAD_REQUEST |
+                  UNAUTHORIZED |
+                  FORBIDDEN |
+                  NOT_FOUND |
+                  METHOD_NOT_ALLOWED deriving Eq
 
 instance Show StatusCode where
-  show sc = let n = show $ statusCodeToNum sc in case sc of
-    OK -> n ++ " Ok"
-    CREATED -> n ++ " Created"
-    ACCEPTED -> n ++ " Accepted"
-    BAD_REQUEST -> n ++ " Bad Request"
-    UNAUTHORIZED -> n ++ " Unauthorized"
-    FORBIDDEN -> n ++ " Forbidden"
-    NOT_FOUND -> n ++ " Not Found"
-    METHOD_NOT_ALLOWED -> n ++ "Method not allowed"
+  show OK = "200 Ok" 
+  show CREATED = "201 Created"
+  show ACCEPTED = "202 Accepted"
+  show BAD_REQUEST = "400 Bad Request"
+  show UNAUTHORIZED = "401 Unauthorized"
+  show FORBIDDEN = "403 Forbidden"
+  show NOT_FOUND = "404 Not Found"
+  show METHOD_NOT_ALLOWED = "405 Method not allowed"
 
-statusCodeToNum :: StatusCode -> Int
-statusCodeToNum sc = case sc of
-  OK -> 200
-  CREATED -> 201
-  ACCEPTED -> 202
-  BAD_REQUEST -> 400
-  UNAUTHORIZED -> 401
-  FORBIDDEN -> 403
-  NOT_FOUND -> 404
-  METHOD_NOT_ALLOWED -> 405
+data ResponseHeader = CONTENT_TYPE String deriving Eq
+
+instance Show ResponseHeader where
+  show (CONTENT_TYPE s) = "Content-type: " ++ s
