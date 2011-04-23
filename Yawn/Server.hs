@@ -48,7 +48,7 @@ work ctx  = do
   i <- get ctx
   Log.info $ "Received: " ++ i
   case Parser.parseRequest i of
-    Left e  -> dispatchError ctx BAD_REQUEST "" 
+    Left _e  -> dispatchError ctx BAD_REQUEST "" 
     Right r -> (Log.debug $ "Parsed: " ++ show r) >> dispatchRequest ctx r
   close ctx
 
@@ -56,12 +56,7 @@ dispatchError :: Show a => Context -> StatusCode -> a -> IO ()
 dispatchError ctx sc e = Log.err e >> (put ctx $ show $ Response sc [] $ show e)
 
 dispatchRequest :: Context -> Request -> IO ()
-dispatchRequest ctx r = case method r of
-                          GET -> getResource ctx r
-                          _ -> dispatchError ctx METHOD_NOT_ALLOWED ""
-
-getResource :: Context -> Request -> IO ()
-getResource ctx r = do
+dispatchRequest ctx r = do
   let path = determinePath ctx (uri r)
   Log.debug $ "Delivering resource: " ++ path
   deliverResource ctx path 
