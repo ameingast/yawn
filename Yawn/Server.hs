@@ -12,49 +12,46 @@ import Yawn.Parser as Parser
 
 run :: Configuration -> IO ()
 run c = let p = (listenOn . PortNumber . fromIntegral . port) c 
-        in bracket p sClose startSocket
+        in bracket p sClose (\s -> startSocket s c)
 
-startSocket :: Socket -> IO ()
-startSocket s = do
-  (Log.debug $ "Listening on port: " ++ show s)
+makeContext :: Configuration -> MVar () -> Handle -> Context
+makeContext c l h = Context c get' put' close'
+  where put' s = withMVar l (\a -> hPutStr h s >> return a)
+        close' = hClose h
+        get' = hGetLine h >>= \i -> if i == "\r" then return "\r\n"
+                                    else get' >>= \r -> return $ i ++ r
+
+startSocket :: Socket -> Configuration -> IO ()
+startSocket socket conf = do
+  Log.debug $ "Listening on port: " ++ (show $ port conf)
   lock <- newMVar ()
-  loop s lock
+  loop socket conf lock
 
-loop :: Socket -> MVar () -> IO ()
-loop socket l = do
+loop :: Socket -> Configuration -> MVar () -> IO ()
+loop socket conf l = do
   (h, n, p) <- accept socket
-  Log.info $ "Accepted connection: " ++ n ++ ":" ++ show p
+  Log.info $ "Accepted connection from " ++ n ++ ":" ++ show p
   hSetBuffering h NoBuffering
-  startWorker l h n p
-  loop socket l
+  forkIO $ work $ makeContext conf l h
+  loop socket conf l
 
-startWorker :: MVar () -> Handle -> String -> PortNumber -> IO (ThreadId)
-startWorker l h n p = forkIO $ work l h n p
-
-work :: MVar () -> Handle -> HostName -> PortNumber -> IO ()
-work l h n p = do
-  i <- readInput h
+work :: Context -> IO ()
+work ctx  = do
+  i <- get ctx
   Log.info $ "Received: " ++ i
   case Parser.parseRequest i of
-    Left e  -> Log.err e
-    Right r -> (Log.debug $ "Parsed: " ++ show r) >> dispatchRequest l r h
-  hClose h
+    Left e  -> Log.err e >> dispatchError ctx e
+    Right r -> (Log.debug $ "Parsed: " ++ show r) >> dispatchRequest ctx r
+  close ctx
 
-readInput :: Handle -> IO (String)
-readInput h = do
-  input <- hGetLine h
-  -- '\n' is stripped via hGetLine
-  if input == "\r" then return "\r\n"
-  else readInput h >>= \rest -> return $ input ++ rest
+-- add fancy error message
+dispatchError :: Show a => Context -> a -> IO ()
+dispatchError ctx e = put ctx $ show e 
 
-dispatchRequest :: MVar () -> Request -> Handle -> IO ()
-dispatchRequest l r h = case method(r) of
-                          GET -> getResource l r h
+dispatchRequest :: Context -> Request -> IO ()
+dispatchRequest ctx r = case method r of
+                          GET -> getResource ctx r
                           _ -> Log.err $ "Unsupported request" ++ show r
 
-getResource :: MVar () -> Request -> Handle -> IO ()
-getResource l r h = do
-  f <- readFile filePath 
-  withMVar l (\a -> hPutStr h f >> return a)
-  where filePath = "Main.hs"
-
+getResource :: Context -> Request -> IO ()
+getResource ctx r = readFile "Main.hs" >>= \f -> put ctx f 

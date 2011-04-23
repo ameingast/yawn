@@ -13,6 +13,19 @@ data Request = Request {
   headers :: [RequestHeader]
 } deriving (Show, Eq)
 
+data Context = Context {
+  configuration :: Configuration,
+  get :: IO (String),
+  put :: String -> IO (),
+  close :: IO ()
+}
+
+instance Show Context where
+  show = show . configuration
+
+instance Eq Context where
+  a == b = configuration a == configuration b
+
 data RequestMethod =  GET |
                       PUT |
                       POST |
