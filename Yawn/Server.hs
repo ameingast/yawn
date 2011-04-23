@@ -16,8 +16,11 @@ run c = let p = (listenOn . PortNumber . fromIntegral . port) c
 
 makeContext :: Configuration -> MVar () -> Handle -> Context
 makeContext c l h = Context c get' put' close'
-  where put' s = withMVar l (\a -> hPutStr h s >> return a)
+  where put' s = do
+                  Log.debug $ "Responding: " ++ s
+                  withMVar l (\a -> hPutStr h s >> return a)
         close' = hClose h
+        -- TODO: handle hGetLine exceptions
         get' = hGetLine h >>= \i -> if i == "\r" then return "\r\n"
                                     else get' >>= \r -> return $ i ++ r
 
@@ -40,13 +43,13 @@ work ctx  = do
   i <- get ctx
   Log.info $ "Received: " ++ i
   case Parser.parseRequest i of
-    Left e  -> Log.err e >> dispatchError ctx e
+    Left e  -> Log.err e >> dispatchError ctx 400 e
     Right r -> (Log.debug $ "Parsed: " ++ show r) >> dispatchRequest ctx r
   close ctx
 
 -- add fancy error message
-dispatchError :: Show a => Context -> a -> IO ()
-dispatchError ctx e = put ctx $ show e 
+dispatchError :: Show a => Context -> Int -> a -> IO ()
+dispatchError ctx code e = put ctx $ show $ Response BAD_REQUEST (show e)
 
 dispatchRequest :: Context -> Request -> IO ()
 dispatchRequest ctx r = case method r of
@@ -54,4 +57,4 @@ dispatchRequest ctx r = case method r of
                           _ -> Log.err $ "Unsupported request" ++ show r
 
 getResource :: Context -> Request -> IO ()
-getResource ctx r = readFile "Main.hs" >>= \f -> put ctx f 
+getResource ctx r = readFile "Main.hs" >>= \f -> put ctx $ show $ Response OK f

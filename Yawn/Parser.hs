@@ -19,8 +19,8 @@ tryMethod name = try $ string (show name) >> return name
 requestUri :: GenParser Char st RequestUri
 requestUri = (noneOf " ") `manyTill` space >>= return . ABSOLUTE_URI
 
-httpVersion :: GenParser Char st HttpVersion
-httpVersion = (try $ string "HTTP/1.0" >> return HTTP_1_0) <|> 
+parseHttpVersion :: GenParser Char st HttpVersion
+parseHttpVersion = (try $ string "HTTP/1.0" >> return HTTP_1_0) <|> 
               (try $ string "HTTP/1.1" >> return HTTP_1_1)
 
 tryHeader :: String -> (String -> RequestHeader) -> GenParser Char st RequestHeader
@@ -43,7 +43,7 @@ request = do
   spaces
   requesturi <- requestUri
   spaces
-  httpversion <- httpVersion
+  httpversion <- parseHttpVersion
   char '\r'
   allHeaders <- requestHeaders
   let filteredHeaders = filter (UNSUPPORTED /=) allHeaders
