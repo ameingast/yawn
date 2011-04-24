@@ -1,6 +1,6 @@
 module Yawn.Request where
 
-import Network.URL (importParams, importURL, url_params)
+import Network.URL (importParams, importURL, url_params, url_path)
 
 data Request = Request {
   method :: RequestMethod,
@@ -51,7 +51,7 @@ getParams :: Request -> Maybe [(String, String)]
 getParams r = importURL (uri r) >>= return . url_params
 
 postParams :: Request -> Maybe [(String, String)]
-postParams r = importParams $ body r
+postParams = importParams . body
 
-requestPath :: Request -> String
-requestPath = takeWhile (\a -> a /= '?' && a /= '&') . uri
+requestPath :: Request -> Maybe String
+requestPath r = importURL (uri r) >>= return . url_path

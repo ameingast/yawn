@@ -6,7 +6,7 @@ import Control.Exception (bracket)
 import Control.Concurrent (MVar, newMVar, forkIO)
 import qualified Data.ByteString as BS
 import Network
-import System.IO (BufferMode (LineBuffering), hSetBuffering)
+import System.IO (BufferMode (NoBuffering), hSetBuffering)
 import System.IO.Error(try)
 
 import Yawn.Context
@@ -31,7 +31,7 @@ loop :: Socket -> Configuration -> MVar () -> IO ()
 loop socket conf l = do
   (h, n, p) <- accept socket
   Log.info $ "Accepted connection from " ++ n ++ ":" ++ show p
-  hSetBuffering h LineBuffering
+  hSetBuffering h NoBuffering
   forkIO $ work $ makeContext conf l h
   loop socket conf l
 
@@ -51,22 +51,24 @@ dispatchRequest :: Context -> Request -> IO ()
 dispatchRequest ctx r = do
   Log.debug $ "Dispatching request: " ++ (uri r) ++ ", GET: " ++ 
               show (getParams r) ++ ", POST: " ++ show (postParams r)
-  let path = determinePath ctx r
-  Log.debug $ "Delivering resource: " ++ path
-  deliverResource ctx path 
+  case determinePath ctx r of
+    Nothing -> dispatchError ctx NOT_FOUND ""
+    Just path -> (Log.debug $ "Serving: " ++ path) >> deliverResource ctx path
 
-determinePath :: Context -> Request -> String
-determinePath ctx u = (root $ configuration $ ctx) ++ path
-  where path = if u' == "/" then "/" ++ (defaultIndexFile $ configuration ctx) else u'
-        u' = requestPath u
+determinePath :: Context -> Request -> Maybe (String)
+determinePath ctx u = let r = (root . configuration) ctx
+                      in requestPath u>>= \p -> return $ r ++ "/" ++ addIdx ctx p
+
+addIdx :: Context -> String -> String
+addIdx ctx p = let idxFile = defaultIndexFile $ configuration ctx
+                     in if p == "/" || p == "" then idxFile else p
 
 deliverResource :: Context -> FilePath -> IO ()
 deliverResource ctx path = 
-  -- this failsafe sucks ass, but it prevents requests from breaking out of the root
-  if elem ".." (Util.split (=='/') path) then 
-    fileNotFound ctx
-  -- determine content type using mime
-  else if Util.endsWith path ["jpg","png"] then deliverImage ctx path
+  -- FIXME: this failsafe sucks ass
+  if elem ".." (Util.split (=='/') path) then fileNotFound ctx
+  -- FIXME: determine content type using mime
+  else if Util.endsWith path ["jpg","png"] then deliverBinFile ctx path
        else deliverTextFile ctx path
 
 deliverTextFile :: Context -> FilePath -> IO ()
@@ -76,12 +78,12 @@ deliverTextFile ctx path = do
     Left _e -> fileNotFound ctx
     Right content -> put ctx $ show $ Response OK [CONTENT_TYPE "text/html"] content
 
-deliverImage :: Context -> FilePath -> IO ()
-deliverImage ctx path = do
+deliverBinFile :: Context -> FilePath -> IO ()
+deliverBinFile ctx path = do
   tryImg <- try (BS.readFile path)
   case tryImg of
     Left _e -> fileNotFound ctx
-    Right content -> do
+    Right content -> do 
       put ctx $ show $ Response OK [CONTENT_TYPE "image/jpeg"] []
       putBin ctx content
 
