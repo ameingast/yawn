@@ -16,8 +16,8 @@ requestMethod = tryMethod GET <|> tryMethod PUT <|> tryMethod POST <|>
 tryMethod :: RequestMethod -> GenParser Char st RequestMethod
 tryMethod name = try $ string (show name) >> return name
 
-requestUri :: GenParser Char st RequestUri
-requestUri = (noneOf " ") `manyTill` space >>= return . RequestUri
+requestUri :: GenParser Char st String
+requestUri = (noneOf " ") `manyTill` space >>= return 
 
 parseHttpVersion :: GenParser Char st HttpVersion
 parseHttpVersion = (try $ string "HTTP/1.0" >> return HTTP_1_0) <|> 

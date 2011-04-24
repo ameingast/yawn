@@ -11,7 +11,7 @@ data Configuration = Configuration {
 
 data Request = Request {
   method :: RequestMethod,
-  uri :: RequestUri,
+  uri :: String,
   version :: HttpVersion,
   headers :: [RequestHeader]
 } deriving (Show, Eq)
@@ -24,8 +24,6 @@ data RequestMethod =  GET |
                       OPTIONS |
                       CONNECT |
                       TRACE deriving (Show, Eq)
-
-data RequestUri = RequestUri String deriving (Show, Eq)
 
 data HttpVersion =  HTTP_1_0 | HTTP_1_1 deriving Eq 
 

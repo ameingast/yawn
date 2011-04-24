@@ -51,8 +51,8 @@ dispatchRequest ctx r = do
   Log.debug $ "Delivering resource: " ++ path
   deliverResource ctx path 
 
-determinePath :: Context -> RequestUri -> String
-determinePath ctx (RequestUri u) = (root $ configuration $ ctx) ++ path
+determinePath :: Context -> String -> String
+determinePath ctx u = (root $ configuration $ ctx) ++ path
   where path = if u == "/" then "/" ++ (defaultIndexFile $ configuration ctx) else u
 
 deliverResource :: Context -> FilePath -> IO ()
@@ -60,6 +60,7 @@ deliverResource ctx path =
   -- this failsafe sucks ass, but it prevents requests from breaking out of the root
   if Prelude.elem ".." (Yawn.Util.split (=='/') path) then 
     fileNotFound ctx
+  -- determine content type using mime
   else if endsWith path ["jpg","png"] then deliverImage ctx path
        else deliverTextFile ctx path
 
@@ -68,7 +69,6 @@ deliverTextFile ctx path = do
   tryContent <- System.IO.Error.try (System.IO.readFile path)
   case tryContent of
     Left _e -> fileNotFound ctx
-    -- determine content type
     Right content -> put ctx $ show $ Response OK [CONTENT_TYPE "text/html"] content
 
 deliverImage :: Context -> FilePath -> IO ()
@@ -76,7 +76,9 @@ deliverImage ctx path = do
   tryImg <- System.IO.Error.try (Data.ByteString.readFile path)
   case tryImg of
     Left _e -> fileNotFound ctx
-    Right content -> putBin ctx content
+    Right content -> do
+      put ctx $ show $ Response OK [CONTENT_TYPE "image/jpeg"] ""
+      putBin ctx content
 
 fileNotFound :: Context -> IO ()
 fileNotFound ctx = dispatchError ctx NOT_FOUND ""
