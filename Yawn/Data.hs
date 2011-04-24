@@ -8,16 +8,6 @@ data Configuration = Configuration {
   root :: FilePath
 } deriving (Show, Eq)
 
-data Context = Context {
-  configuration :: Configuration,
-  get :: IO (String),
-  put :: String -> IO (),
-  close :: IO ()
-}
-
-instance Show Context where
-  show = show . configuration
-
 data Request = Request {
   method :: RequestMethod,
   uri :: RequestUri,

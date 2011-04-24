@@ -4,33 +4,23 @@ module Yawn.Server(
 
 import Control.Exception
 import Control.Concurrent
+import Data.ByteString
 import Network
 import System.IO
 import System.IO.Error
+
+import Yawn.Context
 import Yawn.Data
 import Yawn.Logger as Log
 import Yawn.Parser as Parser
 import Yawn.Util 
 
 run :: Configuration -> IO ()
-run c = let p = (listenOn . PortNumber . fromIntegral . port) c 
-        in bracket p sClose (\s -> startSocket s c)
+run c = let run = (listenOn . PortNumber . fromIntegral . port) c 
+        in bracket run sClose (startSocket c)
 
-makeContext :: Configuration -> MVar () -> Handle -> Context
-makeContext c l h = Context c get' put' close'
-  where put' s = do
-                  Log.debug $ "Responding: " ++ s
-                  withMVar l (\a -> hPutStr h s >> return a)
-        close' = hClose h
-        get' = do 
-          tryInput <- System.IO.Error.try (hGetLine h)
-          case tryInput of
-            Left e -> Log.err e >> return ""
-            Right i -> if i == "\r" then return "\r\n"
-                       else get' >>= \r -> return $ i ++ r
-
-startSocket :: Socket -> Configuration -> IO ()
-startSocket socket conf = do
+startSocket :: Configuration -> Socket -> IO ()
+startSocket conf socket = do
   Log.debug $ "Listening on port: " ++ (show $ port conf)
   lock <- newMVar ()
   loop socket conf lock
@@ -68,15 +58,25 @@ determinePath ctx (RequestUri u) = (root $ configuration $ ctx) ++ path
 deliverResource :: Context -> FilePath -> IO ()
 deliverResource ctx path = 
   -- this failsafe sucks ass, but it prevents requests from breaking out of the root
-  if elem ".." (split (=='/') path) then 
+  if Prelude.elem ".." (Yawn.Util.split (=='/') path) then 
     fileNotFound ctx
-  else do
-    -- replace readFile with getLine so the handle can be flushed after N lines
-    tryContent <- System.IO.Error.try (readFile path)
-    case tryContent of
-      Left _e -> fileNotFound ctx
-      -- determine content type
-      Right content -> put ctx $ show $ Response OK [CONTENT_TYPE "text/html"] content
+  else if endsWith path ["jpg","png"] then deliverImage ctx path
+       else deliverTextFile ctx path
+
+deliverTextFile :: Context -> FilePath -> IO ()
+deliverTextFile ctx path = do
+  tryContent <- System.IO.Error.try (System.IO.readFile path)
+  case tryContent of
+    Left _e -> fileNotFound ctx
+    -- determine content type
+    Right content -> put ctx $ show $ Response OK [CONTENT_TYPE "text/html"] content
+
+deliverImage :: Context -> FilePath -> IO ()
+deliverImage ctx path = do
+  tryImg <- System.IO.Error.try (Data.ByteString.readFile path)
+  case tryImg of
+    Left _e -> fileNotFound ctx
+    Right content -> putBin ctx content
 
 fileNotFound :: Context -> IO ()
 fileNotFound ctx = dispatchError ctx NOT_FOUND ""
