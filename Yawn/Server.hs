@@ -57,7 +57,7 @@ dispatchRequest ctx r = do
     Just path -> (Log.debug $ "Serving: " ++ path) >> deliverResource ctx path
 
 determinePath :: Context -> Request -> Maybe (String)
-determinePath ctx u = let r = (root . configuration) ctx
+determinePath ctx u = let r = (root . configuration) ctx ++ "/public"
                       in requestPath u>>= \p -> return $ r ++ "/" ++ addIdx ctx p
 
 addIdx :: Context -> String -> String
