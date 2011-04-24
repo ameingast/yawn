@@ -4,16 +4,16 @@ module Yawn.Server(
 
 import Control.Exception (bracket)
 import Control.Concurrent (MVar, newMVar, forkIO)
-import qualified Data.ByteString as BS
 import Network
 import System.IO (BufferMode (NoBuffering), hSetBuffering)
 import System.IO.Error(try)
+import qualified Data.ByteString as BS
 
 import Yawn.Context
 import Yawn.Data
+import Yawn.Request
 import qualified Yawn.Logger as Log
 import qualified Yawn.Parser as Parser
-import Yawn.Request
 import qualified Yawn.Util as Util
 
 start :: Configuration -> IO ()
@@ -35,6 +35,7 @@ loop socket conf l = do
   forkIO $ work $ makeContext conf l h
   loop socket conf l
 
+-- TODO: only use close for http/1.0 connections and use a timeout for 1.1
 work :: Context -> IO ()
 work ctx  = do
   i <- get ctx

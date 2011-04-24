@@ -6,53 +6,55 @@ import Text.ParserCombinators.Parsec
 import Yawn.Request
 
 eol :: GenParser Char st Char 
-eol = (try $ char '\r') <|> (try $ char '\n') <|> (eof >> return '\n') 
+eol = (char '\r') <|> (char '\n')
 
-requestMethod :: GenParser Char st RequestMethod
-requestMethod = tryMethod GET <|> tryMethod PUT <|> tryMethod POST <|> 
-                tryMethod DELETE <|> tryMethod HEAD <|> tryMethod OPTIONS <|>
-                tryMethod CONNECT <|> tryMethod TRACE
+parseRequestMethod :: GenParser Char st RequestMethod
+parseRequestMethod = tryMethod GET <|> tryMethod PUT <|> tryMethod POST <|> 
+                     tryMethod DELETE <|> tryMethod HEAD <|> tryMethod OPTIONS <|>
+                     tryMethod CONNECT <|> tryMethod TRACE
 
 tryMethod :: RequestMethod -> GenParser Char st RequestMethod
 tryMethod name = try $ string (show name) >> return name
 
-requestUri :: GenParser Char st String
-requestUri = (noneOf " ") `manyTill` space >>= return 
+parseRequestUri :: GenParser Char st String
+parseRequestUri = (noneOf " ") `manyTill` space >>= return 
 
 parseHttpVersion :: GenParser Char st HttpVersion
-parseHttpVersion = (try $ string "HTTP/1.0" >> return HTTP_1_0) <|> 
-              (try $ string "HTTP/1.1" >> return HTTP_1_1)
+parseHttpVersion = do
+  string "HTTP/1."
+  (char '0' >> return HTTP_1_0) <|> (char '1' >> return HTTP_1_1)
+
+parseHeaders :: GenParser Char st [RequestHeader]
+parseHeaders = (compatibleHeaders <|> unsupportedHeader) `manyTill` string "\r\n" 
 
 tryHeader :: String -> (String -> RequestHeader) -> GenParser Char st RequestHeader
-tryHeader name constr = try $ string name >> char ':' >> space >> (noneOf "\r") `manyTill` eol >>= return . constr
+tryHeader name constr = do
+  try $ string name
+  char ':'
+  spaces
+  value <- (noneOf "\r") `manyTill` char '\r' 
+  return $ constr value
 
-skipHeader :: GenParser Char st RequestHeader
-skipHeader = (noneOf "\r") `manyTill` eol >> return UNSUPPORTED
+unsupportedHeader :: GenParser Char st RequestHeader
+unsupportedHeader = (noneOf "\r") `manyTill` eol >> return UNSUPPORTED
 
 compatibleHeaders :: GenParser Char st RequestHeader
 compatibleHeaders = (tryHeader "Connection" CONNECTION) <|> 
                     (tryHeader "Host" HOST)
 
-requestHeaders :: GenParser Char st [RequestHeader]
-requestHeaders = (compatibleHeaders <|> skipHeader) `manyTill` string "\r\n" 
-
--- FIXME: noneOf really needs to be replaced here
-requestBody :: GenParser Char st String
-requestBody = manyTill (noneOf "") eof
+parseRequestBody :: GenParser Char st String
+parseRequestBody = anyChar `manyTill` eof
 
 request :: GenParser Char st Request
 request = do
-  spaces
-  requestmethod <- requestMethod
-  spaces
-  requesturi <- requestUri
-  spaces
-  httpversion <- parseHttpVersion
-  char '\r'
-  allHeaders <- requestHeaders
-  messageBody <- requestBody
-  let filteredHeaders = filter (UNSUPPORTED /=) allHeaders
-  return $ Request requestmethod requesturi httpversion filteredHeaders messageBody
+  requestMethod <- parseRequestMethod
+  space
+  requestUri <- parseRequestUri
+  httpVersion <- parseHttpVersion
+  eol
+  requestHeaders <- parseHeaders >>= return . filter (UNSUPPORTED /=)
+  messageBody <- parseRequestBody
+  return $ Request requestMethod requestUri httpVersion requestHeaders messageBody
 
 parseRequest :: String -> Either ParseError Request
 parseRequest input = parse request "Parse error" input
