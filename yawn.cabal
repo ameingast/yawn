@@ -12,12 +12,12 @@ Cabal-version:       >=1.2
 
 Executable yawn 
     Main-is:        Main.hs
-    ghc-options:    -Wall -fno-warn-unused-do-bind
-    Build-Depends:  network
-    Build-Depends:  parsec
-    Build-Depends:  binary 
-    Build-Depends:  bytestring
-    Build-Depends:  url
+    ghc-options:    -Wall -fno-warn-unused-do-bind -O3
+    Build-Depends:  network >= 2.3
+    Build-Depends:  parsec >= 0.2
+    Build-Depends:  binary >= 0.5
+    Build-Depends:  bytestring >= 0.9
+    Build-Depends:  url >= 2
     Build-Depends:  base >= 4 
     Build-Depends:  haskell98
 
