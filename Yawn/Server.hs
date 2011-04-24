@@ -53,7 +53,7 @@ dispatchRequest ctx r = do
 
 determinePath :: Context -> RequestUri -> String
 determinePath ctx (RequestUri u) = (root $ configuration $ ctx) ++ path
-  where path = if u == "/" then "/index.html" else u
+  where path = if u == "/" then "/" ++ (defaultIndexFile $ configuration ctx) else u
 
 deliverResource :: Context -> FilePath -> IO ()
 deliverResource ctx path = 
