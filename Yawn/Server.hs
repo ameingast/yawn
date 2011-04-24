@@ -1,5 +1,5 @@
 module Yawn.Server(
-  run
+  start
 ) where
 
 import Control.Exception
@@ -13,11 +13,12 @@ import Yawn.Context
 import Yawn.Data
 import Yawn.Logger as Log
 import Yawn.Parser as Parser
+import Yawn.Request
 import Yawn.Util 
 
-run :: Configuration -> IO ()
-run c = let run = (listenOn . PortNumber . fromIntegral . port) c 
-        in bracket run sClose (startSocket c)
+start :: Configuration -> IO ()
+start c = let run = (listenOn . PortNumber . fromIntegral . port) c 
+          in bracket run sClose (startSocket c)
 
 startSocket :: Configuration -> Socket -> IO ()
 startSocket conf socket = do
@@ -77,7 +78,7 @@ deliverImage ctx path = do
   case tryImg of
     Left _e -> fileNotFound ctx
     Right content -> do
-      put ctx $ show $ Response OK [CONTENT_TYPE "image/jpeg"] ""
+      put ctx $ show $ Response OK [CONTENT_TYPE "image/jpeg"] []
       putBin ctx content
 
 fileNotFound :: Context -> IO ()

@@ -3,7 +3,7 @@ module Yawn.Parser(
 ) where
 
 import Text.ParserCombinators.Parsec
-import Yawn.Data
+import Yawn.Request
 
 eol :: GenParser Char st Char 
 eol = (try $ char '\r') <|> (try $ char '\n') <|> (eof >> return '\n') 
