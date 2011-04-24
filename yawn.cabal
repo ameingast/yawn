@@ -17,6 +17,7 @@ Executable yawn
     Build-Depends:  parsec
     Build-Depends:  binary 
     Build-Depends:  bytestring
+    Build-Depends:  url
     Build-Depends:  base >= 4 
     Build-Depends:  haskell98
 

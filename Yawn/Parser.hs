@@ -36,6 +36,10 @@ compatibleHeaders = (tryHeader "Connection" CONNECTION) <|>
 requestHeaders :: GenParser Char st [RequestHeader]
 requestHeaders = (compatibleHeaders <|> skipHeader) `manyTill` string "\r\n" 
 
+-- FIXME: noneOf really needs to be replaced here
+requestBody :: GenParser Char st String
+requestBody = manyTill (noneOf "") eof
+
 request :: GenParser Char st Request
 request = do
   spaces
@@ -46,8 +50,9 @@ request = do
   httpversion <- parseHttpVersion
   char '\r'
   allHeaders <- requestHeaders
+  messageBody <- requestBody
   let filteredHeaders = filter (UNSUPPORTED /=) allHeaders
-  return $ Request requestmethod requesturi httpversion filteredHeaders
+  return $ Request requestmethod requesturi httpversion filteredHeaders messageBody
 
 parseRequest :: String -> Either ParseError Request
 parseRequest input = parse request "Parse error" input

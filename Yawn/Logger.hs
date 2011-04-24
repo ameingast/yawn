@@ -4,7 +4,7 @@ module Yawn.Logger(
   err
 ) where
 
-import Time
+import Time (getClockTime, toCalendarTime, calendarTimeToString)
 
 info :: Show a => a -> IO ()
 info s = formatMessage s "info" >>= putStrLn
@@ -18,5 +18,5 @@ err s = formatMessage s "error" >>= putStrLn
 formatMessage :: Show a => a -> String -> IO (String)
 formatMessage s ch = time >>= \t -> return $ "[" ++ t ++ "] [" ++ ch ++ "] " ++ show s
 
-time :: IO String
+time :: IO (String)
 time = getClockTime >>= toCalendarTime >>= (return . calendarTimeToString)

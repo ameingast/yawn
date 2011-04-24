@@ -1,10 +1,13 @@
 module Yawn.Request where
 
+import Network.URL (importParams, importURL, url_params)
+
 data Request = Request {
   method :: RequestMethod,
   uri :: String,
   version :: HttpVersion,
-  headers :: [RequestHeader]
+  headers :: [RequestHeader],
+  body :: String
 } deriving (Show, Eq)
 
 data RequestMethod =  GET |
@@ -44,4 +47,11 @@ instance Show HttpVersion where
   show HTTP_1_0 = "HTTP/1.0"
   show HTTP_1_1 = "HTTP/1.1"
 
--- TODO: uri-path method
+getParams :: Request -> Maybe [(String, String)]
+getParams r = importURL (uri r) >>= return . url_params
+
+postParams :: Request -> Maybe [(String, String)]
+postParams r = importParams $ body r
+
+requestPath :: Request -> String
+requestPath = takeWhile (\a -> a /= '?' && a /= '&') . uri

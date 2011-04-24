@@ -4,7 +4,7 @@ module Yawn.Util (
   endsWith
 ) where
 
-import List
+import List (isSuffixOf)
 
 split :: (a -> Bool) -> [a] -> [[a]]
 split _ [] = []

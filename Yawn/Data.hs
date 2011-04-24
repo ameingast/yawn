@@ -1,6 +1,6 @@
 module Yawn.Data where
 
-import Yawn.Util
+import Yawn.Util (concatWith)
 
 data Configuration = Configuration { 
   port :: Integer,
