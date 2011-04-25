@@ -1,7 +1,8 @@
+-- FIXME: add qualified exports
 module Yawn.Configuration where
 
-import Text.ParserCombinators.Parsec
 import System.IO (hPutStrLn, stderr)
+import Yawn.Util.KeyValueParser (parsePairs)
 import qualified System.IO.Error as IOError
 
 data Configuration = Configuration { 
@@ -31,22 +32,22 @@ parseConfig content appRoot = (parseConfiguration content) >>= \c -> case c of
   Just config -> return $ Just $ config { root = appRoot }
 
 parseConfiguration :: String -> IO (Maybe Configuration)
-parseConfiguration s = case parse file "yawn.conf" s of
-  Left e -> printError e >> return Nothing 
-  Right ok -> return $ Just ok
+parseConfiguration s = case parsePairs s "yawn.conf" of
+  Left e -> printError e >> return Nothing
+  Right pairs -> case makeConfig pairs of
+    Nothing -> printError "Configuration file incomplete" >> return Nothing
+    Just x -> return $ Just x
+
+makeConfig :: [(String, String)] -> Maybe Configuration
+makeConfig xs = do
+  aPort <- find "port" xs
+  aHost <- find "host" xs
+  anIndexFile <- find "indexFile" xs
+  return $ Configuration (read aPort) aHost "" anIndexFile
+
+find :: Eq a => a -> [(a, b)] -> Maybe b
+find s [] = Nothing
+find s ((a,b):xs) = if s == a then Just b else find s xs
 
 printError :: Show a => a -> IO ()
 printError e = hPutStrLn stderr $ "Unable to load configuration file " ++ show e
-
-file :: GenParser Char st Configuration
-file = do
-  aPort <- valueFor "port"
-  aHost <- valueFor "host"
-  aDefaultIndexFile <- valueFor "indexFile"
-  return $ Configuration (read aPort) aHost "" aDefaultIndexFile
-
-valueFor :: String -> GenParser Char st String
-valueFor s = string (s ++ "=") >> many (noneOf "\n") >>= \r -> eol >> return r
-
-eol :: GenParser Char st Char
-eol = char '\n' <|> char '\r' <|> (eof >> return '\n')
