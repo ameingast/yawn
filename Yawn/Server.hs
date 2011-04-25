@@ -43,7 +43,7 @@ work ctx  = do
   i <- get ctx
   doLog conf LOG_INFO $ "Received: " ++ i
   case parseRequest i of
-    Left _e  -> dispatchError ctx BAD_REQUEST 
+    Left _e -> dispatchError ctx BAD_REQUEST 
     Right r -> (doLog conf LOG_DEBUG $ "Parsed: " ++ show r) >> dispatchRequest ctx r
   close ctx
 

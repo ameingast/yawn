@@ -38,10 +38,10 @@ data RequestHeader =  ACCEPT String |
                       REFERER String |
                       TE String |
                       CONNECTION String |
-                      USER_AGENT |
+                      USER_AGENT String |
                       UNSUPPORTED deriving (Show, Eq)
 
-data HttpVersion =  HTTP_1_0 | HTTP_1_1 deriving Eq 
+data HttpVersion = HTTP_1_0 | HTTP_1_1 deriving Eq 
 
 instance Show HttpVersion where
   show HTTP_1_0 = "HTTP/1.0"
