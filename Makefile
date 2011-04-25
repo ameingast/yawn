@@ -1,9 +1,26 @@
-all:
-	cabal configure
-	cabal build
+CABAL 	= cabal
+EXE 	= dist/build/yawn/yawn
 
-run:
-	./dist/build/yawn/yawn
+all: 	configure build doc
+
+configure:
+	@$(CABAL) configure
+
+build: 	configure
+	@$(CABAL) build
+
+doc: 	configure
+	@$(CABAL) haddock --executables
+
+run: 	build
+	@./$(EXE)
+
+dist: 	configure
+	@$(CABAL) sdist
+
+profile:
+	@$(CABAL) configure -p
+	@$(CABAL) build
 
 clean:
-	cabal clean
+	@$(CABAL) clean
