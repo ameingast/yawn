@@ -6,21 +6,18 @@ module Yawn.Mime (
 
 import System.FilePath (takeExtension) 
 import Text.ParserCombinators.Parsec
-import Yawn.Configuration (Configuration, root)
+import Yawn.Configuration (Configuration, mimeFile)
+import Yawn.Logger
 import qualified System.IO.Error as IOError 
-import qualified Yawn.Logger as Log
 
 type MimeDictionary = [(String, [String])]
 
-dictLocation :: Configuration -> String
-dictLocation conf = root conf ++ "/conf/mime.types"
-
 loadMimeTypes :: Configuration -> IO (Maybe MimeDictionary)
 loadMimeTypes conf = do
-  IOError.try (readFile $ dictLocation conf) >>= \c -> case c of
-    Left e -> Log.err e >> return Nothing
+  IOError.try (readFile $ mimeFile conf) >>= \c -> case c of
+    Left e -> doLog conf LOG_ERROR e >> return Nothing
     Right content -> case parseMime content of
-      Left e -> Log.err e >> return Nothing
+      Left e -> doLog conf LOG_ERROR e >> return Nothing
       Right ok -> return $ Just ok
 
 mimeType :: MimeDictionary -> FilePath -> Maybe (String)

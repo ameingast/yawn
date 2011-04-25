@@ -14,7 +14,7 @@ import Yawn.Context
 import Yawn.Request
 import Yawn.Response
 import Yawn.Mime (MimeDictionary, loadMimeTypes, mimeType)
-import qualified Yawn.Logger as Log
+import Yawn.Logger as Log
 import qualified Yawn.Parser as Parser
 import qualified Yawn.Util as Util
 
@@ -28,7 +28,7 @@ start conf = do
 
 startSocket :: Configuration -> MimeDictionary -> Socket -> IO ()
 startSocket conf dict socket = do
-  Log.debug $ "Listening on port: " ++ (show $ port conf)
+  doLog conf LOG_DEBUG $ "Listening on port: " ++ (show $ port conf)
   lock <- newMVar ()
   loop conf dict socket lock
 
@@ -36,7 +36,7 @@ startSocket conf dict socket = do
 loop :: Configuration -> MimeDictionary -> Socket -> MVar () -> IO ()
 loop conf dict socket l = do
   (h, n, p) <- accept socket
-  Log.info $ "Accepted connection from " ++ n ++ ":" ++ show p
+  doLog conf LOG_INFO $ "Accepted connection from " ++ n ++ ":" ++ show p
   hSetBuffering h NoBuffering
   forkIO $ work $ makeContext conf dict l h
   loop conf dict socket l
@@ -44,23 +44,27 @@ loop conf dict socket l = do
 -- TODO: only use close for http/1.0 connections and use a timeout for 1.1
 work :: Context -> IO ()
 work ctx  = do
+  let conf = configuration ctx
   i <- get ctx
-  Log.info $ "Received: " ++ i
+  doLog conf LOG_INFO $ "Received: " ++ i
   case Parser.parseRequest i of
     Left _e  -> dispatchError ctx BAD_REQUEST 
-    Right r -> (Log.debug $ "Parsed: " ++ show r) >> dispatchRequest ctx r
+    Right r -> (doLog conf LOG_DEBUG $ "Parsed: " ++ show r) >> dispatchRequest ctx r
   close ctx
 
 dispatchError :: Context -> StatusCode -> IO ()
-dispatchError ctx sc = Log.err sc >> (put ctx $ show $ Response sc [] "")
+dispatchError ctx sc = do
+  doLog (configuration ctx) LOG_ERROR sc
+  put ctx $ show $ Response sc [] ""
 
 dispatchRequest :: Context -> Request -> IO ()
 dispatchRequest ctx r = do
-  Log.debug $ "Dispatching request: " ++ (uri r) ++ ", GET: " ++ 
-              show (getParams r) ++ ", POST: " ++ show (postParams r)
+  let conf = configuration ctx
+  doLog conf LOG_DEBUG $ "Dispatching request: " ++ (uri r) ++ ", GET: " ++ 
+                         show (getParams r) ++ ", POST: " ++ show (postParams r)
   case determinePath ctx r of
     Nothing -> dispatchError ctx NOT_FOUND
-    Just path -> (Log.debug $ "Serving: " ++ path) >> deliverResource ctx path
+    Just p -> (doLog conf LOG_DEBUG $ "Serving: " ++ p) >> deliverResource ctx p
 
 determinePath :: Context -> Request -> Maybe (String)
 determinePath ctx u = let r = (root . configuration) ctx ++ "/public"

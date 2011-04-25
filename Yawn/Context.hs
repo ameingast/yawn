@@ -14,9 +14,9 @@ import Control.Concurrent (MVar, withMVar)
 import System.IO (Handle, hGetLine, hPutStr, hClose, hWaitForInput, hGetChar)
 import System.IO.Error (try)
 
-import Yawn.Mime (MimeDictionary)
 import Yawn.Configuration (Configuration)
-import qualified Yawn.Logger as Log
+import Yawn.Logger
+import Yawn.Mime (MimeDictionary)
 
 data Context = Context {
   configuration :: Configuration,
@@ -36,14 +36,14 @@ makeContext c d l h = Context c d
 
 contextPut :: MVar () -> Handle -> String -> IO ()
 contextPut l h s = do
-  Log.debug $ "Sending: " ++ s
+  doLog' LOG_DEBUG $ "Sending: " ++ s
   let put' = logErrorFor $ hPutStr h s
   withMVar l (\a -> put' >> return a)
 
 -- FIXME: hGetLine is exploitable with long lines of input
 contextGet :: Configuration -> MVar () -> Handle -> IO (String)
 contextGet c l h = try (hGetLine h) >>= \input -> case input of 
-  Left e -> Log.err e >> return ""
+  Left e -> doLog c LOG_INFO (show e) >> return ""
   Right i -> if i == "\r" then getMessageBody h >>= return . ("\r\n"++)
   else contextGet c l h >>= \r -> return $ i ++ r
 
@@ -59,11 +59,11 @@ getMessageBody h = do
 
 contextPutBin :: MVar () -> Handle -> ByteString -> IO ()
 contextPutBin l h bs = do
-  Log.debug "Sending <binary>"
+  doLog' LOG_DEBUG "Sending <binary>"
   let put' = logErrorFor $ hPut h bs
   withMVar l (\a -> put' >> return a)  
 
 logErrorFor :: IO () -> IO ()
 logErrorFor f = try f >>= \output -> case output of
-  Left e -> Log.err e >> return ()
+  Left e -> doLog' LOG_ERROR (show e) >> return ()
   Right _ok -> return ()
