@@ -14,8 +14,7 @@ import Control.Concurrent (MVar, withMVar)
 import System.IO (Handle, hGetLine, hPutStr, hClose, hWaitForInput, hGetChar)
 import System.IO.Error (try)
 
-import Yawn.Data
-import Yawn.Mime
+import Yawn.Mime (MimeDictionary)
 import Yawn.Configuration (Configuration)
 import qualified Yawn.Logger as Log
 

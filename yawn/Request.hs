@@ -1,5 +1,6 @@
 module Yawn.Request where
 
+-- replace with Network.URI
 import Network.URL (importParams, importURL, url_params, url_path)
 
 data Request = Request {

@@ -11,9 +11,9 @@ import qualified Data.ByteString as BS
 
 import Yawn.Configuration (Configuration, port, root, defaultIndexFile)
 import Yawn.Context
-import Yawn.Data
 import Yawn.Request
-import Yawn.Mime
+import Yawn.Response
+import Yawn.Mime (MimeDictionary, loadMimeTypes, mimeType)
 import qualified Yawn.Logger as Log
 import qualified Yawn.Parser as Parser
 import qualified Yawn.Util as Util
