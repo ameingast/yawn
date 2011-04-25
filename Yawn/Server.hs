@@ -10,20 +10,16 @@ import System.IO.Error(try)
 import Yawn.Configuration (Configuration, port, publicRoot, defaultIndexFile)
 import Yawn.Context
 import Yawn.Logger
-import Yawn.Mime (MimeDictionary, loadMimeTypes, mimeType)
+import Yawn.Mime (MimeDictionary, mimeType)
 import Yawn.Request
 import Yawn.Response
 import qualified Data.ByteString as BS
 import qualified Yawn.Parser as Parser
 import qualified Yawn.Util as Util
 
-start :: Configuration -> IO ()
-start conf = do
-  loadMimeTypes conf >>= \d -> case d of
-    Nothing -> return ()
-    Just dict -> do
-      let run = (listenOn . PortNumber . fromIntegral . port) conf
-      bracket run sClose (startSocket conf dict)
+start :: Configuration -> MimeDictionary -> IO ()
+start conf dict = let run = (listenOn . PortNumber . fromIntegral . port) conf
+                  in bracket run sClose (startSocket conf dict)
 
 startSocket :: Configuration -> MimeDictionary -> Socket -> IO ()
 startSocket conf dict socket = do
