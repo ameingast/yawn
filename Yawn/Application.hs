@@ -3,8 +3,8 @@ module Yawn.Application (
 ) where
 
 import Yawn.Configuration (Configuration, loadConfig)
-import Yawn.Mime as Mime (loadMimeTypes)
-import Yawn.Logger (doLog, Level (LOG_DEBUG))
+import Yawn.Logger (Level (LOG_DEBUG), doLog)
+import Yawn.Mime (loadMimeTypes)
 import qualified Yawn.Server as Server (start)
 
 start :: FilePath -> IO ()

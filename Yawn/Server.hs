@@ -4,18 +4,18 @@ module Yawn.Server(
 
 import Control.Concurrent (MVar, newMVar, forkIO)
 import Control.Exception (bracket)
-import Network
+import Network (Socket, PortID (PortNumber), listenOn, sClose, accept)
 import System.IO (BufferMode (NoBuffering), hSetBuffering)
-import System.IO.Error(try)
+import System.IO.Error (try)
 import Yawn.Configuration (Configuration, port, publicRoot, defaultIndexFile)
-import Yawn.Context
-import Yawn.Logger
+import Yawn.Context (Context, makeContext, configuration, get, close, put, putBin, mimeTypes)
+import Yawn.Logger (Level (LOG_DEBUG, LOG_INFO, LOG_ERROR), doLog)
 import Yawn.Mime (MimeDictionary, mimeType)
+import Yawn.Parser (parseRequest)
 import Yawn.Request
 import Yawn.Response
-import qualified Data.ByteString as BS
-import qualified Yawn.Parser as Parser
-import qualified Yawn.Util as Util
+import Yawn.Util (split)
+import qualified Data.ByteString as BS (readFile)
 
 start :: Configuration -> MimeDictionary -> IO ()
 start conf dict = let run = (listenOn . PortNumber . fromIntegral . port) conf
@@ -42,7 +42,7 @@ work ctx  = do
   let conf = configuration ctx
   i <- get ctx
   doLog conf LOG_INFO $ "Received: " ++ i
-  case Parser.parseRequest i of
+  case parseRequest i of
     Left _e  -> dispatchError ctx BAD_REQUEST 
     Right r -> (doLog conf LOG_DEBUG $ "Parsed: " ++ show r) >> dispatchRequest ctx r
   close ctx
@@ -72,7 +72,7 @@ addIdx ctx p = let idxFile = (defaultIndexFile . configuration) ctx
 deliverResource :: Context -> FilePath -> IO ()
 deliverResource ctx path = 
   -- FIXME: this failsafe sucks ass
-  if elem ".." (Util.split (=='/') path) then fileNotFound ctx
+  if elem ".." (split (=='/') path) then fileNotFound ctx
   else deliverFile ctx path
 
 deliverFile :: Context -> FilePath -> IO ()

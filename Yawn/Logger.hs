@@ -27,7 +27,7 @@ doLog' l s = formatMessage s l >>= putStrLn
 writeOut :: Configuration -> Level -> String -> IO ()
 writeOut c l s = do
   let logFile = logRoot c ++ show l ++ ".log"
-  try (withFile logFile AppendMode (\h -> hPutStr h s)) >>= \st -> case st of
+  try (withFile logFile AppendMode (\h -> hPutStr h (s ++ "\n"))) >>= \st -> case st of
     Left e -> error ("Unable to open logfile. " ++ show e) >> return () 
     Right _ok -> putStrLn s
 

@@ -14,7 +14,7 @@ import Data.ByteString (ByteString, hPut)
 import System.IO (Handle, hGetLine, hPutStr, hClose, hWaitForInput, hGetChar)
 import System.IO.Error (try)
 import Yawn.Configuration (Configuration)
-import Yawn.Logger
+import Yawn.Logger (Level (LOG_DEBUG, LOG_INFO, LOG_ERROR), doLog, doLog')
 import Yawn.Mime (MimeDictionary)
 
 data Context = Context {

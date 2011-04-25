@@ -7,7 +7,7 @@ module Yawn.Mime (
 import System.FilePath (takeExtension) 
 import Text.ParserCombinators.Parsec
 import Yawn.Configuration (Configuration, mimeFile)
-import Yawn.Logger
+import Yawn.Logger (Level (LOG_ERROR), doLog)
 import qualified System.IO.Error as IOError 
 
 type MimeDictionary = [(String, [String])]
@@ -29,35 +29,35 @@ mimeType d p = let ext = tail $ takeExtension p
 parseMime :: String -> Either ParseError [(String, [String])]
 parseMime s = parse file "Mime Type Error" s 
 
-file :: GenParser Char st [(String, [String])]
+file :: CharParser st [(String, [String])]
 file = do
   many (comments <|> string "\n")
   many line
 
-comments :: GenParser Char st String
+comments :: CharParser st String
 comments = char '#' >> anyChar `manyTill` char '\n'
 
-line :: GenParser Char st (String, [String])
+line :: CharParser st (String, [String])
 line = do
   name <- many1 symbol
   exts <- extensions <|> noExtensions
   return (name, exts)
 
-extensions :: GenParser Char st [String]
+extensions :: CharParser st [String]
 extensions = do
   many whiteSpace
   exts <- many1 symbol `sepBy` many1 whiteSpace
   eol
   return exts
 
-noExtensions :: GenParser Char st [String]
+noExtensions :: CharParser st [String]
 noExtensions = eol >> return []
 
-whiteSpace :: GenParser Char st Char
+whiteSpace :: CharParser st Char
 whiteSpace = char ' ' <|> char '\t'
 
-eol :: GenParser Char st Char
+eol :: CharParser st Char
 eol = char '\n' <|> (eof >> return '\n')
 
-symbol :: GenParser Char st Char
+symbol :: CharParser st Char
 symbol = letter <|> digit <|> char '-' <|> char '+' <|> char '.' <|> char '/'

@@ -1,9 +1,17 @@
--- FIXME: add qualified exports
-module Yawn.Configuration where
+module Yawn.Configuration (
+  Configuration,
+  port,
+  host,
+  defaultIndexFile,
+  mimeFile,
+  logRoot,
+  publicRoot,
+  loadConfig
+) where
 
 import System.IO (hPutStrLn, stderr)
-import Yawn.Util.KeyValueParser (parsePairs)
-import qualified System.IO.Error as IOError
+import Yawn.Util.DictionaryParser (Dictionary, parseDictionary)
+import qualified System.IO.Error as IOError (try)
 
 data Configuration = Configuration { 
   port :: Integer,
@@ -32,13 +40,13 @@ parseConfig content appRoot = (parseConfiguration content) >>= \c -> case c of
   Just config -> return $ Just $ config { root = appRoot }
 
 parseConfiguration :: String -> IO (Maybe Configuration)
-parseConfiguration s = case parsePairs s "yawn.conf" of
+parseConfiguration s = case parseDictionary "yawn.conf" s of
   Left e -> printError e >> return Nothing
   Right pairs -> case makeConfig pairs of
     Nothing -> printError "Configuration file incomplete" >> return Nothing
     Just x -> return $ Just x
 
-makeConfig :: [(String, String)] -> Maybe Configuration
+makeConfig :: Dictionary -> Maybe Configuration
 makeConfig xs = do
   aPort <- find "port" xs
   aHost <- find "host" xs
@@ -46,7 +54,7 @@ makeConfig xs = do
   return $ Configuration (read aPort) aHost "" anIndexFile
 
 find :: Eq a => a -> [(a, b)] -> Maybe b
-find s [] = Nothing
+find _ [] = Nothing
 find s ((a,b):xs) = if s == a then Just b else find s xs
 
 printError :: Show a => a -> IO ()
