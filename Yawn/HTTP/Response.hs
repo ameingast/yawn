@@ -1,6 +1,6 @@
 module Yawn.HTTP.Response where
 
-import Yawn.Util (concatWith)
+import Yawn.Util.List (concatWith)
 
 data Response = Response {
   statusCode :: StatusCode,

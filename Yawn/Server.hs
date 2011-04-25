@@ -14,7 +14,7 @@ import Yawn.HTTP.RequestParser (parseRequest)
 import Yawn.HTTP.Response
 import Yawn.Logger (Level (LOG_DEBUG, LOG_INFO, LOG_ERROR), doLog)
 import Yawn.Mime (MimeDictionary, mimeType)
-import Yawn.Util (split)
+import Yawn.Util.List (split)
 import qualified Data.ByteString as BS (readFile)
 
 start :: Configuration -> MimeDictionary -> IO ()

@@ -1,4 +1,4 @@
-module Yawn.Util (
+module Yawn.Util.List (
   split,
   concatWith,
   endsWith
