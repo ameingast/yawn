@@ -3,6 +3,7 @@ module Yawn.Parser(
 ) where
 
 import Text.ParserCombinators.Parsec
+import Network.URL (URL, importURL)
 import Yawn.Request
 
 eol :: GenParser Char st Char 
@@ -16,8 +17,11 @@ parseRequestMethod = tryMethod GET <|> tryMethod PUT <|> tryMethod POST <|>
 tryMethod :: RequestMethod -> GenParser Char st RequestMethod
 tryMethod name = try $ string (show name) >> return name
 
-parseRequestUri :: GenParser Char st String
-parseRequestUri = (noneOf " ") `manyTill` space >>= return 
+parseRequestUrl :: GenParser Char st URL
+parseRequestUrl = do
+  (noneOf " ") `manyTill` space >>= \u -> case importURL u of
+    Nothing -> fail "Invalid URL"
+    Just u' -> return u'
 
 parseHttpVersion :: GenParser Char st HttpVersion
 parseHttpVersion = do
@@ -49,12 +53,12 @@ request :: GenParser Char st Request
 request = do
   requestMethod <- parseRequestMethod
   space
-  requestUri <- parseRequestUri
+  requestUrl <- parseRequestUrl
   httpVersion <- parseHttpVersion
   eol
   requestHeaders <- parseHeaders >>= return . filter (UNSUPPORTED /=)
   messageBody <- parseRequestBody
-  return $ Request requestMethod requestUri httpVersion requestHeaders messageBody
+  return $ Request requestMethod requestUrl httpVersion requestHeaders messageBody
 
 parseRequest :: String -> Either ParseError Request
 parseRequest input = parse request "Parse error" input

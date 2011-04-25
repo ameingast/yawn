@@ -2,19 +2,18 @@ module Yawn.Server(
   start
 ) where
 
-import Control.Exception (bracket)
 import Control.Concurrent (MVar, newMVar, forkIO)
+import Control.Exception (bracket)
 import Network
 import System.IO (BufferMode (NoBuffering), hSetBuffering)
 import System.IO.Error(try)
-import qualified Data.ByteString as BS
-
-import Yawn.Configuration (Configuration, port, root, defaultIndexFile)
+import Yawn.Configuration (Configuration, port, publicRoot, defaultIndexFile)
 import Yawn.Context
+import Yawn.Logger
+import Yawn.Mime (MimeDictionary, loadMimeTypes, mimeType)
 import Yawn.Request
 import Yawn.Response
-import Yawn.Mime (MimeDictionary, loadMimeTypes, mimeType)
-import Yawn.Logger as Log
+import qualified Data.ByteString as BS
 import qualified Yawn.Parser as Parser
 import qualified Yawn.Util as Util
 
@@ -60,19 +59,19 @@ dispatchError ctx sc = do
 dispatchRequest :: Context -> Request -> IO ()
 dispatchRequest ctx r = do
   let conf = configuration ctx
-  doLog conf LOG_DEBUG $ "Dispatching request: " ++ (uri r) ++ ", GET: " ++ 
+  let path = determinePath ctx r
+  doLog conf LOG_DEBUG $ "Dispatching request: " ++ (show $ url r) ++ ", GET: " ++ 
                          show (getParams r) ++ ", POST: " ++ show (postParams r)
-  case determinePath ctx r of
-    Nothing -> dispatchError ctx NOT_FOUND
-    Just p -> (doLog conf LOG_DEBUG $ "Serving: " ++ p) >> deliverResource ctx p
+  doLog conf LOG_DEBUG $ "Serving: " ++ path
+  deliverResource ctx path
 
-determinePath :: Context -> Request -> Maybe (String)
-determinePath ctx u = let r = (root . configuration) ctx ++ "/public"
-                      in requestPath u>>= \p -> return $ r ++ "/" ++ addIdx ctx p
+determinePath :: Context -> Request -> String
+determinePath ctx r = let base = (publicRoot . configuration) ctx
+                      in base ++ "/" ++ addIdx ctx (requestPath r)
 
 addIdx :: Context -> String -> String
-addIdx ctx p = let idxFile = defaultIndexFile $ configuration ctx
-                     in if p == "/" || p == "" then idxFile else p
+addIdx ctx p = let idxFile = (defaultIndexFile . configuration) ctx
+               in if p == "/" || p == "" then idxFile else p
 
 deliverResource :: Context -> FilePath -> IO ()
 deliverResource ctx path = 

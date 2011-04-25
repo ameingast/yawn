@@ -32,8 +32,7 @@ writeOut c l s = do
     Right _ok -> putStrLn s
 
 formatMessage :: Show a => a -> Level -> IO (String)
-formatMessage s l = let m = show s
-                    in time >>= \t -> return $ "[" ++ t ++ "] [" ++ show l ++ "] " ++ m
+formatMessage s l = time >>= \t -> return $ "[" ++ t ++ "] [" ++ show l ++ "] " ++ show s
 
 time :: IO (String)
 time = getClockTime >>= toCalendarTime >>= (return . calendarTimeToString)

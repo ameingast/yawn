@@ -9,11 +9,10 @@ module Yawn.Context(
   close
 ) where
 
-import Data.ByteString (ByteString, hPut)
 import Control.Concurrent (MVar, withMVar)
+import Data.ByteString (ByteString, hPut)
 import System.IO (Handle, hGetLine, hPutStr, hClose, hWaitForInput, hGetChar)
 import System.IO.Error (try)
-
 import Yawn.Configuration (Configuration)
 import Yawn.Logger
 import Yawn.Mime (MimeDictionary)

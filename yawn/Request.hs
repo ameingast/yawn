@@ -1,11 +1,10 @@
 module Yawn.Request where
 
--- replace with Network.URI
-import Network.URL (importParams, importURL, url_params, url_path)
+import Network.URL (URL, importParams, url_params, url_path)
 
 data Request = Request {
   method :: RequestMethod,
-  uri :: String,
+  url :: URL,
   version :: HttpVersion,
   headers :: [RequestHeader],
   body :: String
@@ -48,11 +47,11 @@ instance Show HttpVersion where
   show HTTP_1_0 = "HTTP/1.0"
   show HTTP_1_1 = "HTTP/1.1"
 
-getParams :: Request -> Maybe [(String, String)]
-getParams r = importURL (uri r) >>= return . url_params
+getParams :: Request -> [(String, String)]
+getParams = url_params . url
 
 postParams :: Request -> Maybe [(String, String)]
 postParams = importParams . body
 
-requestPath :: Request -> Maybe String
-requestPath r = importURL (uri r) >>= return . url_path
+requestPath :: Request -> String
+requestPath = url_path . url

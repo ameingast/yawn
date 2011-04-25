@@ -12,3 +12,6 @@ mimeFile conf = root conf ++ "/conf/mime.types"
 
 logRoot :: Configuration -> FilePath
 logRoot conf = root conf ++ "/log/"
+
+publicRoot :: Configuration -> FilePath
+publicRoot conf = root conf ++ "/public/"
