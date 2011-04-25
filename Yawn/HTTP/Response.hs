@@ -1,4 +1,4 @@
-module Yawn.Response where
+module Yawn.HTTP.Response where
 
 import Yawn.Util (concatWith)
 

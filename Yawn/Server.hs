@@ -9,11 +9,11 @@ import System.IO (BufferMode (NoBuffering), hSetBuffering)
 import System.IO.Error (try)
 import Yawn.Configuration (Configuration, port, publicRoot, defaultIndexFile)
 import Yawn.Context (Context, makeContext, configuration, get, close, put, putBin, mimeTypes)
+import Yawn.HTTP.Request
+import Yawn.HTTP.RequestParser (parseRequest)
+import Yawn.HTTP.Response
 import Yawn.Logger (Level (LOG_DEBUG, LOG_INFO, LOG_ERROR), doLog)
 import Yawn.Mime (MimeDictionary, mimeType)
-import Yawn.Parser (parseRequest)
-import Yawn.Request
-import Yawn.Response
 import Yawn.Util (split)
 import qualified Data.ByteString as BS (readFile)
 

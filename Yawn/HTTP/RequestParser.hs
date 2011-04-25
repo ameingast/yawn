@@ -1,10 +1,10 @@
-module Yawn.Parser(
+module Yawn.HTTP.RequestParser (
   parseRequest
 ) where
 
 import Text.ParserCombinators.Parsec
 import Network.URL (URL, importURL)
-import Yawn.Request
+import Yawn.HTTP.Request
 
 eol :: CharParser () Char 
 eol = (char '\r') <|> (char '\n')

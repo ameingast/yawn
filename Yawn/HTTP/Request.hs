@@ -1,4 +1,4 @@
-module Yawn.Request where
+module Yawn.HTTP.Request where
 
 import Network.URL (URL, importParams, url_params, url_path)
 
