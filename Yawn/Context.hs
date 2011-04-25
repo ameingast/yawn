@@ -2,6 +2,7 @@ module Yawn.Context(
   Context,
   makeContext,
   configuration,
+  mimeTypes,
   get,
   put,
   putBin,
@@ -14,26 +15,30 @@ import System.IO (Handle, hGetLine, hPutStr, hClose, hWaitForInput, hGetChar)
 import System.IO.Error (try)
 
 import Yawn.Data
+import Yawn.Mime
 import qualified Yawn.Logger as Log
 
 data Context = Context {
   configuration :: Configuration,
+  mimeTypes :: MimeDictionary,
   get :: IO (String),
   put :: String -> IO (),
   putBin :: ByteString -> IO (),
   close :: IO ()
 }
 
-makeContext :: Configuration -> MVar () -> Handle -> Context
-makeContext c l h = Context c 
-                    (contextGet c l h) 
-                    (contextPut l h)
-                    (contextPutBin l h) 
-                    (hClose h) 
+makeContext :: Configuration -> MimeDictionary -> MVar () -> Handle -> Context
+makeContext c d l h = Context c d
+                      (contextGet c l h) 
+                      (contextPut l h)
+                      (contextPutBin l h) 
+                      (hClose h) 
 
 contextPut :: MVar () -> Handle -> String -> IO ()
-contextPut l h s = let put' = logErrorFor $ hPutStr h s
-                   in withMVar l (\a -> put' >> return a)
+contextPut l h s = do
+  Log.debug $ "Sending: " ++ s
+  let put' = logErrorFor $ hPutStr h s
+  withMVar l (\a -> put' >> return a)
 
 -- FIXME: hGetLine is exploitable with long lines of input
 contextGet :: Configuration -> MVar () -> Handle -> IO (String)
@@ -53,8 +58,10 @@ getMessageBody h = do
       Right c -> getMessageBody h >>= return . (c:)
 
 contextPutBin :: MVar () -> Handle -> ByteString -> IO ()
-contextPutBin l h bs = let put' = logErrorFor $ hPut h bs
-                       in withMVar l (\a -> put' >> return a)  
+contextPutBin l h bs = do
+  Log.debug "Sending <binary>"
+  let put' = logErrorFor $ hPut h bs
+  withMVar l (\a -> put' >> return a)  
 
 logErrorFor :: IO () -> IO ()
 logErrorFor f = try f >>= \output -> case output of
