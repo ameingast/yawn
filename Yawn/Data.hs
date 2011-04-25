@@ -2,13 +2,6 @@ module Yawn.Data where
 
 import Yawn.Util (concatWith)
 
-data Configuration = Configuration { 
-  port :: Integer,
-  host :: String,
-  root :: FilePath,
-  defaultIndexFile :: String
-} deriving (Show, Eq)
-
 data Response = Response {
   statusCode :: StatusCode,
   entityHeaders :: [ResponseHeader],

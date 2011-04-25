@@ -1,7 +1,7 @@
 module Main(main) where
 
 import Directory
-import Yawn.Data 
+import Yawn.Configuration
 import Yawn.Server as Server
 
 main :: IO()

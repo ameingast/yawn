@@ -16,6 +16,7 @@ import System.IO.Error (try)
 
 import Yawn.Data
 import Yawn.Mime
+import Yawn.Configuration (Configuration)
 import qualified Yawn.Logger as Log
 
 data Context = Context {

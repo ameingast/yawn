@@ -9,6 +9,7 @@ import System.IO (BufferMode (NoBuffering), hSetBuffering)
 import System.IO.Error(try)
 import qualified Data.ByteString as BS
 
+import Yawn.Configuration (Configuration, port, root, defaultIndexFile)
 import Yawn.Context
 import Yawn.Data
 import Yawn.Request

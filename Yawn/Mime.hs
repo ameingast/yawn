@@ -6,7 +6,7 @@ module Yawn.Mime (
 
 import System.FilePath (takeExtension) 
 import Text.ParserCombinators.Parsec
-import Yawn.Data (Configuration, root)
+import Yawn.Configuration (Configuration, root)
 import qualified System.IO.Error as IOError 
 import qualified Yawn.Logger as Log
 
