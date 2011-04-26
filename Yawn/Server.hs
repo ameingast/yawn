@@ -10,12 +10,14 @@ import Yawn.Configuration (Configuration, port)
 import Yawn.Context (Context, makeContext, configuration, get, close)
 import Yawn.Dispatcher (dispatchRequest, badRequest)
 import Yawn.HTTP.RequestParser (parseRequest)
+import Yawn.HTTP.Request (Request, HttpVersion(HTTP_1_0, HTTP_1_1), findHeader, version)
 import Yawn.Logger (Level (LOG_DEBUG, LOG_INFO), doLog)
 import Yawn.Mime (MimeDictionary)
 
 start :: Configuration -> MimeDictionary -> IO ()
-start conf dict = let run = (listenOn . PortNumber . fromIntegral . port) conf
-                  in bracket run sClose (startSocket conf dict)
+start conf dict = 
+  let run = (listenOn . PortNumber . fromIntegral . port) conf
+  in bracket run sClose (startSocket conf dict)
 
 startSocket :: Configuration -> MimeDictionary -> Socket -> IO ()
 startSocket conf dict socket = do
@@ -43,3 +45,11 @@ work ctx  = do
     Right r -> (doLog conf LOG_DEBUG $ "Parsed: " ++ show r) >> dispatchRequest ctx r 
   -- if keep-alive && <= keep-alive timeout listen for more input
   close ctx
+
+-- Under HTTP/1.0 all connections are closed unless Connection: Keep-Alive is supplied
+-- Under HTTP/1.1 all connections are open unless Connection: close is supplied
+isKeepAlive :: Request -> Bool
+isKeepAlive r = case findHeader "Connection" r of 
+  Nothing -> version r == HTTP_1_1
+  Just con -> if version r == HTTP_1_0 then "Keep-Alive" == con
+              else "close" /= con

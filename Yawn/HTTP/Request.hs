@@ -1,7 +1,7 @@
 module Yawn.HTTP.Request where
 
 import Network.URL (URL, importParams, url_params, url_path)
-import qualified Data.Map as M
+import qualified Data.Map as M (Map, lookup)
 
 data Request = Request {
   method :: RequestMethod,
@@ -34,3 +34,6 @@ postParams = importParams . body
 
 requestPath :: Request -> String
 requestPath = url_path . url
+
+findHeader :: String -> Request -> Maybe String
+findHeader name = M.lookup name . headers
