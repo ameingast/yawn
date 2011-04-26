@@ -1,7 +1,8 @@
 CABAL 	= cabal
+REPL 	= ghci
 EXE 	= dist/build/yawn/yawn
 
-all: 	configure build doc
+all: 	repl	
 
 configure:
 	@$(CABAL) configure
@@ -21,6 +22,9 @@ dist: 	configure
 profile:
 	@$(CABAL) configure -p
 	@$(CABAL) build
+
+repl:
+	@$(REPL) Main.hs
 
 clean:
 	@$(CABAL) clean
