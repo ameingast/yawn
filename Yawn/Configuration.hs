@@ -7,12 +7,14 @@ module Yawn.Configuration (
   keepAliveTimeOut,
   maxClients,
   showIndex,
+  defaultMimeType,
   mimeFile,
   logRoot,
   publicRoot,
   loadConfig
 ) where
 
+import Data.Maybe (fromMaybe)
 import System.IO (hPutStrLn, stderr)
 import Yawn.Util.DictionaryParser (Dictionary, parseDictionary)
 import qualified System.IO.Error as IOError (try)
@@ -25,7 +27,8 @@ data Configuration = Configuration {
   requestTimeOut :: Int,
   keepAliveTimeOut :: Int,
   maxClients :: Int,
-  showIndex :: Bool
+  showIndex :: Bool,
+  defaultMimeType :: String
 } deriving (Show, Eq)
 
 mimeFile :: Configuration -> FilePath
@@ -50,36 +53,21 @@ parseConfig content appRoot = (parseConfiguration content) >>= \c -> case c of
 parseConfiguration :: String -> IO (Maybe Configuration)
 parseConfiguration s = case parseDictionary "yawn.conf" s of
   Left e -> printError e >> return Nothing
-  Right pairs -> case makeConfig pairs of
-    Nothing -> printError "Configuration file incomplete" >> return Nothing
-    Just x -> return $ Just x
+  Right pairs -> return $ Just $ makeConfig pairs
 
-makeConfig :: Dictionary -> Maybe Configuration
-makeConfig xs = do
-  aPort <- find "port" xs
-  aHost <- find "host" xs
-  anIndexFile <- find "defaultIndexFile" xs
-  let aRequestTimeout = findOr "requestTimeout" "300" xs
-  let aKeepAliveTimeout = findOr "keepAliveTimeout" "15" xs
-  let aMaxClients = findOr "maxClients" "100" xs
-  let aShowIndex = findOr "showIndex" "False" xs
-  return $ Configuration (read aPort) 
-                         aHost 
-                         "" 
-                         anIndexFile 
-                         (read aRequestTimeout) 
-                         (read aKeepAliveTimeout)
-                         (read aMaxClients) 
-                         (read aShowIndex)
+makeConfig :: Dictionary -> Configuration
+makeConfig xs = Configuration (read $ find "port" "9000" xs)
+                              (find "host" "localhost" xs)
+                              ""
+                              (find "defaultIndexFile" "index.html" xs)
+                              (read $ find "requestTimeout" "300" xs)
+                              (read $ find "keepAliveTimeout" "15" xs)
+                              (read $ find "maxClients" "100" xs)
+                              (read $ find "showIndex" "False" xs)
+                              (find "defaultMimeType" "text/html" xs)
 
-find :: Eq a => a -> [(a, b)] -> Maybe b
-find _ [] = Nothing
-find s ((a,b):xs) = if s == a then Just b else find s xs
-
-findOr :: Eq a => a -> b -> [(a, b)] -> b
-findOr x y xs = case find x xs of
-  Nothing -> y
-  Just z -> z
+find :: Eq a => a -> b -> [(a, b)] -> b
+find a b xs = fromMaybe b $ lookup a xs
 
 printError :: Show a => a -> IO ()
 printError e = hPutStrLn stderr $ "Unable to load configuration file " ++ show e

@@ -12,7 +12,7 @@ start :: FilePath -> IO ()
 start path = putStrLn "Booting YAWS..." >> loadConfiguration path
 
 loadConfiguration :: FilePath -> IO ()
-loadConfiguration path = liftIOMaybe_ hop $ loadConfig path
+loadConfiguration = liftIOMaybe_ hop . loadConfig
   where hop c = (doLog c LOG_DEBUG $ "Loaded configuration: " ++ show c) >> loadMimeTypes c
 
 loadMimeTypes :: Configuration -> IO ()

@@ -7,7 +7,7 @@ module Yawn.Dispatcher (
 import Control.Monad (liftM, liftM2)
 import System.Directory (doesFileExist, doesDirectoryExist, getDirectoryContents)
 import System.IO.Error (try)
-import Yawn.Configuration (Configuration, publicRoot, defaultIndexFile, showIndex)
+import Yawn.Configuration (Configuration, publicRoot, defaultIndexFile, showIndex, defaultMimeType)
 import Yawn.Context (Context, configuration, put, putBin, mimeTypes)
 import Yawn.HTTP.Request
 import Yawn.HTTP.Response
@@ -22,15 +22,15 @@ dispatchRequest ctx r = do
   let path = publicRoot conf ++ requestPath r
   let indexFile = path ++ "/" ++ defaultIndexFile conf
   let safeUrl = not $ elem ".." $ split (== '/') path
-  deliverDefaultIndexFile <- shouldDeliverDefaultIndexFile conf path indexFile
+  deliverDefaultIndexFile <- shouldDeliverDefaultIndexFile path indexFile
   deliverDirectoryIndex <- shouldDeliverDirectoryIndex conf path
   if not safeUrl then fileNotFound ctx
   else if deliverDefaultIndexFile then deliverFile ctx indexFile
     else if deliverDirectoryIndex then deliverIndex ctx path
          else deliverFile ctx path
 
-shouldDeliverDefaultIndexFile :: Configuration -> FilePath -> FilePath -> IO (Bool)
-shouldDeliverDefaultIndexFile conf path indexFile = 
+shouldDeliverDefaultIndexFile :: FilePath -> FilePath -> IO (Bool)
+shouldDeliverDefaultIndexFile path indexFile = 
   liftM2 (&&) (doesDirectoryExist path) (doesFileExist indexFile)
 
 shouldDeliverDirectoryIndex :: Configuration -> FilePath -> IO (Bool)
@@ -70,5 +70,5 @@ dispatchError ctx sc = do
 
 contentType :: Context -> FilePath -> String
 contentType ctx path = case mimeType (mimeTypes ctx) path of
-  Nothing -> ""
+  Nothing -> defaultMimeType $ configuration ctx
   Just ct -> ct
