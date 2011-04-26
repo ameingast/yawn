@@ -19,7 +19,8 @@ data StatusCode = OK |
                   UNAUTHORIZED |
                   FORBIDDEN |
                   NOT_FOUND |
-                  METHOD_NOT_ALLOWED deriving Eq
+                  METHOD_NOT_ALLOWED |
+                  INTERNAL_ERROR deriving Eq
 
 instance Show StatusCode where
   show OK = "200 Ok" 
@@ -30,6 +31,7 @@ instance Show StatusCode where
   show FORBIDDEN = "403 Forbidden"
   show NOT_FOUND = "404 Not Found"
   show METHOD_NOT_ALLOWED = "405 Method not allowed"
+  show INTERNAL_ERROR = "500 Internal error"
 
 data ResponseHeader = CONTENT_TYPE String deriving Eq
 
