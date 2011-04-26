@@ -3,6 +3,10 @@ module Yawn.Configuration (
   port,
   host,
   defaultIndexFile,
+  requestTimeOut,
+  keepAliveTimeOut,
+  maxClients,
+  showIndex,
   mimeFile,
   logRoot,
   publicRoot,
@@ -58,7 +62,7 @@ makeConfig xs = do
   let aRequestTimeout = findOr "requestTimeout" "300" xs
   let aKeepAliveTimeout = findOr "keepAliveTimeout" "15" xs
   let aMaxClients = findOr "maxClients" "100" xs
-  let showIndex = findOr "showIndex" "False" xs
+  let aShowIndex = findOr "showIndex" "False" xs
   return $ Configuration (read aPort) 
                          aHost 
                          "" 
@@ -66,7 +70,7 @@ makeConfig xs = do
                          (read aRequestTimeout) 
                          (read aKeepAliveTimeout)
                          (read aMaxClients) 
-                         (read showIndex)
+                         (read aShowIndex)
 
 find :: Eq a => a -> [(a, b)] -> Maybe b
 find _ [] = Nothing
