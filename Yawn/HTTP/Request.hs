@@ -1,12 +1,13 @@
 module Yawn.HTTP.Request where
 
 import Network.URL (URL, importParams, url_params, url_path)
+import qualified Data.Map as M
 
 data Request = Request {
   method :: RequestMethod,
   url :: URL,
   version :: HttpVersion,
-  headers :: [RequestHeader],
+  headers :: M.Map String String,
   body :: String
 } deriving (Show, Eq)
 
@@ -18,28 +19,6 @@ data RequestMethod =  GET |
                       OPTIONS |
                       CONNECT |
                       TRACE deriving (Show, Eq)
-
-data RequestHeader =  ACCEPT String |
-                      ACCEPT_CHARSET String|
-                      ACCEPT_ENCODING String |
-                      ACCEPT_LANGUAGE String |
-                      AUTHORIZATION String |
-                      EXPECT String |
-                      FROM String |
-                      HOST String |
-                      IF_MATCH String |
-                      IF_MODIFIED_SINCE String |
-                      IF_NONE_MATCH String |
-                      IF_RANGE String |
-                      IF_UNMODIFIED_SINCE String |
-                      MAX_FORWARDS String |
-                      PROXY_AUTHORIZATION String |
-                      RANGE String |
-                      REFERER String |
-                      TE String |
-                      CONNECTION String |
-                      USER_AGENT String |
-                      UNSUPPORTED deriving (Show, Eq)
 
 data HttpVersion = HTTP_1_0 | HTTP_1_1 deriving Eq 
 

@@ -5,6 +5,7 @@ module Yawn.HTTP.RequestParser (
 import Text.ParserCombinators.Parsec
 import Network.URL (URL, importURL)
 import Yawn.HTTP.Request
+import qualified Data.Map as M
 
 eol :: CharParser () Char 
 eol = (char '\r') <|> (char '\n')
@@ -28,38 +29,15 @@ parseHttpVersion = do
   string "HTTP/1."
   (char '0' >> return HTTP_1_0) <|> (char '1' >> return HTTP_1_1)
 
-parseHeaders :: CharParser () [RequestHeader]
-parseHeaders = (compatibleHeaders <|> unsupportedHeader) `manyTill` string "\r\n" 
+parseHeaders :: CharParser () [(String, String)]
+parseHeaders = try parseHeader `manyTill` string "\r\n" 
 
-parseHeader :: String -> (String -> RequestHeader) -> CharParser () RequestHeader
-parseHeader name constr = do
-  string name >> char ':' >> many1 space
+parseHeader :: CharParser () (String, String)
+parseHeader = do
+  name <- many (noneOf ":")
+  char ':' >> many1 space
   value <- (noneOf "\r") `manyTill` char '\r'
-  return $ constr value
-
-unsupportedHeader :: CharParser () RequestHeader
-unsupportedHeader = (noneOf "\r") `manyTill` eol >> return UNSUPPORTED
-
-compatibleHeaders :: CharParser () RequestHeader
-compatibleHeaders = (try $ parseHeader "Accept" ACCEPT) <|>
-                    (try $ parseHeader "Accept-Charset" ACCEPT_CHARSET) <|>
-                    (try $ parseHeader "Accept-Encoding" ACCEPT_ENCODING) <|>
-                    (try $ parseHeader "Accept-Language" ACCEPT_LANGUAGE) <|>
-                    (try $ parseHeader "Authorization" AUTHORIZATION) <|>
-                    (try $ parseHeader "Expect" EXPECT) <|>
-                    (try $ parseHeader "From" FROM) <|>
-                    (try $ parseHeader "Host" HOST) <|>
-                    (try $ parseHeader "If-Match" IF_MATCH) <|>
-                    (try $ parseHeader "If-Modified-Since" IF_MODIFIED_SINCE) <|> 
-                    (try $ parseHeader "If-None-Match" IF_NONE_MATCH) <|> 
-                    (try $ parseHeader "If-Range" IF_RANGE) <|> 
-                    (try $ parseHeader "If-Unmodified-Since" IF_UNMODIFIED_SINCE) <|> 
-                    (try $ parseHeader "Max-Forwards" MAX_FORWARDS) <|> 
-                    (try $ parseHeader "Proxy-Authorization" PROXY_AUTHORIZATION) <|> 
-                    (try $ parseHeader "Range" RANGE) <|> 
-                    (try $ parseHeader "Referer" REFERER) <|> 
-                    (try $ parseHeader "Connection" CONNECTION) <|> 
-                    (try $ parseHeader "User-Agent" USER_AGENT)
+  return (name, value)
 
 parseRequestBody :: CharParser () String
 parseRequestBody = anyChar `manyTill` eof
@@ -71,7 +49,7 @@ request = do
   requestUrl <- parseRequestUrl
   httpVersion <- parseHttpVersion
   eol
-  requestHeaders <- parseHeaders >>= return . filter (UNSUPPORTED /=)
+  requestHeaders <- parseHeaders >>= return . M.fromList
   messageBody <- parseRequestBody
   return $ Request requestMethod requestUrl httpVersion requestHeaders messageBody
 
