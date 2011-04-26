@@ -17,7 +17,11 @@ data Configuration = Configuration {
   port :: Integer,
   host :: String,
   root :: FilePath,
-  defaultIndexFile :: String
+  defaultIndexFile :: String,
+  requestTimeOut :: Int,
+  keepAliveTimeOut :: Int,
+  maxClients :: Int,
+  showIndex :: Bool
 } deriving (Show, Eq)
 
 mimeFile :: Configuration -> FilePath
@@ -50,12 +54,28 @@ makeConfig :: Dictionary -> Maybe Configuration
 makeConfig xs = do
   aPort <- find "port" xs
   aHost <- find "host" xs
-  anIndexFile <- find "indexFile" xs
-  return $ Configuration (read aPort) aHost "" anIndexFile
+  anIndexFile <- find "defaultIndexFile" xs
+  let aRequestTimeout = findOr "requestTimeout" "300" xs
+  let aKeepAliveTimeout = findOr "keepAliveTimeout" "15" xs
+  let aMaxClients = findOr "maxClients" "100" xs
+  let showIndex = findOr "showIndex" "False" xs
+  return $ Configuration (read aPort) 
+                         aHost 
+                         "" 
+                         anIndexFile 
+                         (read aRequestTimeout) 
+                         (read aKeepAliveTimeout)
+                         (read aMaxClients) 
+                         (read showIndex)
 
 find :: Eq a => a -> [(a, b)] -> Maybe b
 find _ [] = Nothing
 find s ((a,b):xs) = if s == a then Just b else find s xs
+
+findOr :: Eq a => a -> b -> [(a, b)] -> b
+findOr x y xs = case find x xs of
+  Nothing -> y
+  Just z -> z
 
 printError :: Show a => a -> IO ()
 printError e = hPutStrLn stderr $ "Unable to load configuration file " ++ show e
