@@ -1,56 +1,82 @@
 module Yawn.HTTP.RequestParser (
-  parseRequest
+  parse
 ) where
 
-import Text.ParserCombinators.Parsec
+import Control.Applicative hiding (many)
+import Data.Word (Word8)
 import Network.URL (URL, importURL)
 import Yawn.HTTP.Request
+import qualified Data.Attoparsec as P
+import qualified Data.Attoparsec.Char8 as P8 (char8, endOfLine, isEndOfLine, isHorizontalSpace)
+import qualified Data.ByteString as BS (ByteString, concat)
+import qualified Data.ByteString.Char8 as BS8 (unpack, pack)
 import qualified Data.Map as M (fromList)
-import qualified Data.ByteString as BS (ByteString)
-import qualified Data.ByteString.Char8 as BS8 (unpack)
 
-parseRequestMethod :: CharParser () RequestMethod
-parseRequestMethod = tryMethod GET <|> tryMethod PUT <|> tryMethod POST <|> 
-                     tryMethod DELETE <|> tryMethod HEAD <|> tryMethod OPTIONS <|>
-                     tryMethod CONNECT <|> tryMethod TRACE
+parse :: (IO (BS.ByteString)) -> BS.ByteString -> IO (Either String Request)
+parse supplier = parseMore supplier . P.parse parseRequest
 
-tryMethod :: RequestMethod -> CharParser () RequestMethod
-tryMethod name = try $ string (show name) >> return name
+parseMore :: (IO (BS.ByteString)) -> P.Result Request -> IO (Either String Request)
+parseMore supplier result = do
+  case result of
+    P.Fail bs ctx err -> return $ Left $ show ctx ++ ": " ++ err ++ ". Unparsed: " ++ show bs
+    P.Partial f -> supplier >>= \next -> parseMore supplier $ f next
+    P.Done _bs r -> return $ Right r
 
-parseRequestUrl :: CharParser () URL
-parseRequestUrl = do
-  (noneOf " ") `manyTill` space >>= \u -> case importURL u of
+parseRequest :: P.Parser (Request)
+parseRequest = do
+  aRequestMethod <- parseHttpMethod <* P8.char8 ' '
+  aUrl <- parseURL <* P8.char8 ' '
+  aVersion <- parseHttpVersion <* P8.endOfLine
+  someHeaders <- (P.many parseHeader >>= return . M.fromList) <* P8.endOfLine
+  aBody <- parseBody
+  return $ Request aRequestMethod aUrl aVersion someHeaders aBody
+
+parseURL :: P.Parser (URL)
+parseURL =
+  P.takeWhile1 (/= 32) >>= \u -> case (importURL . BS8.unpack) u of
     Nothing -> fail "Invalid URL"
     Just u' -> return u'
 
-parseHttpVersion :: CharParser () HttpVersion
+parseHttpMethod :: P.Parser (RequestMethod)
+parseHttpMethod = do
+  (packString "GET" >> return GET) <|>
+    (packString "DELETE" >> return DELETE) <|>
+    (packString "HEAD" >> return HEAD) <|>
+    (packString "OPTIONS" >> return OPTIONS) <|>
+    (packString "CONNECT" >> return CONNECT) <|>
+    (packString "TRACE" >> return TRACE) <|>
+    (P.try (packString "POST") >> return POST) <|>
+    (packString "PUT" >> return PUT)
+
+parseHttpVersion :: P.Parser (HttpVersion)
 parseHttpVersion = do
-  string "HTTP/1."
-  (char '0' >> return HTTP_1_0) <|> (char '1' >> return HTTP_1_1)
+  packString "HTTP/1."
+  (P8.char8 '0' >> return HTTP_1_0) <|> (P8.char8 '1' >> return HTTP_1_1)
 
-parseHeaders :: CharParser () [(String, String)]
-parseHeaders = try parseHeader `manyTill` string "\r\n" 
-
-parseHeader :: CharParser () (String, String)
+parseHeader :: P.Parser (BS.ByteString, BS.ByteString)
 parseHeader = do
-  name <- many (noneOf ":")
-  char ':' >> many1 space
-  value <- anyChar `manyTill` string "\r\n"
-  return (name, value)
+  name <- P.takeWhile1 letterOrDigit <* P8.char8 ':' 
+  P.skipWhile P8.isHorizontalSpace
+  value <- P.takeTill P8.isEndOfLine <* P8.endOfLine
+  additionalValues <- P.many parseHeaderBody
+  return (name, BS.concat $ value:additionalValues)
 
-parseRequestBody :: CharParser () String
-parseRequestBody = anyChar `manyTill` eof
+parseHeaderBody :: P.Parser (BS.ByteString)
+parseHeaderBody = do 
+  P.takeWhile1 P8.isHorizontalSpace
+  P.takeTill P8.isEndOfLine <* P8.endOfLine
 
-request :: CharParser () Request
-request = do
-  requestMethod <- parseRequestMethod
-  space
-  requestUrl <- parseRequestUrl
-  httpVersion <- parseHttpVersion
-  string "\r\n"
-  requestHeaders <- parseHeaders >>= return . M.fromList
-  messageBody <- parseRequestBody
-  return $ Request requestMethod requestUrl httpVersion requestHeaders messageBody
+parseBody :: P.Parser (BS.ByteString)
+parseBody = P.takeWhile symbol <* P.endOfInput
 
-parseRequest :: BS.ByteString -> Either ParseError Request
-parseRequest input = parse request "Parse error" $ BS8.unpack input
+letterOrDigit :: Word8 -> Bool
+letterOrDigit w = w <= 127 && P.notInClass tokens w
+
+symbol :: Word8 -> Bool
+symbol w = w <= 127 || P.inClass tokens w 
+
+tokens :: String
+tokens = "\0-\31()<>@,;:\\\"/[]?={} \t"
+
+packString :: String -> P.Parser (BS.ByteString)
+packString = P.string . BS8.pack
