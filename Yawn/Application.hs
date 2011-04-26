@@ -4,19 +4,17 @@ module Yawn.Application (
 
 import Yawn.Configuration (Configuration, loadConfig)
 import Yawn.Logger (Level (LOG_DEBUG), doLog)
-import Yawn.Mime (loadMimeTypes)
+import Yawn.Util.Maybe (liftIOMaybe_)
+import qualified Yawn.Mime as Mime (loadMimeTypes)
 import qualified Yawn.Server as Server (start)
 
 start :: FilePath -> IO ()
-start path = putStrLn "Booting YAWS..." >> safeLoadConfiguration path
+start path = putStrLn "Booting YAWS..." >> loadConfiguration path
 
-safeLoadConfiguration :: FilePath -> IO ()
-safeLoadConfiguration path = loadConfig path >>= \c -> case c of
-  Nothing -> return ()
-  Just conf -> doLog conf LOG_DEBUG "Loaded configuration" >> safeLoadMimetypes conf
-    
-safeLoadMimetypes :: Configuration -> IO ()
-safeLoadMimetypes conf = loadMimeTypes conf >>= \d -> case d of
-  Nothing -> return ()
-  Just dict -> doLog conf LOG_DEBUG "Loaded mimetypes" >> Server.start conf dict
+loadConfiguration :: FilePath -> IO ()
+loadConfiguration path = liftIOMaybe_ hop $ loadConfig path
+  where hop conf = doLog conf LOG_DEBUG "Loaded configuration" >> loadMimeTypes conf 
 
+loadMimeTypes :: Configuration -> IO ()
+loadMimeTypes conf = liftIOMaybe_ hop $ Mime.loadMimeTypes conf
+  where hop dict = doLog conf LOG_DEBUG "Loaded mimetypes" >> Server.start conf dict 
