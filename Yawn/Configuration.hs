@@ -5,6 +5,7 @@ module Yawn.Configuration (
   defaultIndexFile,
   requestTimeOut,
   keepAliveTimeOut,
+  socketBufSize,
   maxClients,
   showIndex,
   defaultMimeType,
@@ -14,9 +15,9 @@ module Yawn.Configuration (
   loadConfig
 ) where
 
-import Data.Maybe (fromMaybe)
 import System.IO (hPutStrLn, stderr)
 import Yawn.Util.DictionaryParser (Dictionary, parseDictionary)
+import Yawn.Util.List (find)
 import qualified System.IO.Error as IOError (try)
 
 data Configuration = Configuration { 
@@ -26,6 +27,7 @@ data Configuration = Configuration {
   defaultIndexFile :: String,
   requestTimeOut :: Int,
   keepAliveTimeOut :: Int,
+  socketBufSize :: Int,
   maxClients :: Int,
   showIndex :: Bool,
   defaultMimeType :: String
@@ -46,7 +48,7 @@ loadConfig appRoot = IOError.try (readFile (appRoot ++ "/conf/yawn.conf")) >>= \
   Right content -> parseConfig content appRoot
     
 parseConfig :: String -> String -> IO (Maybe Configuration)
-parseConfig content appRoot = (parseConfiguration content) >>= \c -> case c of 
+parseConfig content appRoot = parseConfiguration content >>= \c -> case c of 
   Nothing -> return Nothing
   Just config -> return $ Just $ config { root = appRoot }
 
@@ -62,12 +64,10 @@ makeConfig xs = Configuration (read $ find "port" "9000" xs)
                               (find "defaultIndexFile" "index.html" xs)
                               (read $ find "requestTimeout" "300" xs)
                               (read $ find "keepAliveTimeout" "15" xs)
+                              (read $ find "socketBufSize" "8192" xs)
                               (read $ find "maxClients" "100" xs)
                               (read $ find "showIndex" "False" xs)
                               (find "defaultMimeType" "text/html" xs)
-
-find :: Eq a => a -> b -> [(a, b)] -> b
-find a b xs = fromMaybe b $ lookup a xs
 
 printError :: Show a => a -> IO ()
 printError e = hPutStrLn stderr $ "Unable to load configuration file " ++ show e

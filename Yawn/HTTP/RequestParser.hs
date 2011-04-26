@@ -5,10 +5,9 @@ module Yawn.HTTP.RequestParser (
 import Text.ParserCombinators.Parsec
 import Network.URL (URL, importURL)
 import Yawn.HTTP.Request
-import qualified Data.Map as M
-
-eol :: CharParser () Char 
-eol = (char '\r') <|> (char '\n')
+import qualified Data.Map as M (fromList)
+import qualified Data.ByteString as BS (ByteString)
+import qualified Data.ByteString.Char8 as BS8 (unpack)
 
 parseRequestMethod :: CharParser () RequestMethod
 parseRequestMethod = tryMethod GET <|> tryMethod PUT <|> tryMethod POST <|> 
@@ -36,7 +35,7 @@ parseHeader :: CharParser () (String, String)
 parseHeader = do
   name <- many (noneOf ":")
   char ':' >> many1 space
-  value <- (noneOf "\r") `manyTill` char '\r'
+  value <- anyChar `manyTill` string "\r\n"
   return (name, value)
 
 parseRequestBody :: CharParser () String
@@ -48,10 +47,10 @@ request = do
   space
   requestUrl <- parseRequestUrl
   httpVersion <- parseHttpVersion
-  eol
+  string "\r\n"
   requestHeaders <- parseHeaders >>= return . M.fromList
   messageBody <- parseRequestBody
   return $ Request requestMethod requestUrl httpVersion requestHeaders messageBody
 
-parseRequest :: String -> Either ParseError Request
-parseRequest input = parse request "Parse error" input
+parseRequest :: BS.ByteString -> Either ParseError Request
+parseRequest input = parse request "Parse error" $ BS8.unpack input

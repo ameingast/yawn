@@ -13,6 +13,8 @@ import Yawn.HTTP.RequestParser (parseRequest)
 import Yawn.HTTP.Request (Request, HttpVersion(HTTP_1_0, HTTP_1_1), findHeader, version)
 import Yawn.Logger (Level (LOG_DEBUG, LOG_INFO), doLog)
 import Yawn.Mime (MimeDictionary)
+import Yawn.Util.Maybe (liftIOMaybe)
+import qualified Data.ByteString as BS (ByteString)
 
 start :: Configuration -> MimeDictionary -> IO ()
 start conf dict = 
@@ -37,14 +39,17 @@ loop conf dict socket l = do
 -- TODO: only use close for http/1.0 connections and use a timeout for 1.1
 work :: Context -> IO ()
 work ctx  = do
-  let conf = configuration ctx
-  i <- get ctx
-  doLog conf LOG_INFO $ "Received: " ++ i
-  case parseRequest i of
-    Left _e -> badRequest ctx
-    Right r -> (doLog conf LOG_DEBUG $ "Parsed: " ++ show r) >> dispatchRequest ctx r 
+  liftIOMaybe Nothing (work' ctx) (get ctx)
   -- if keep-alive && <= keep-alive timeout listen for more input
   close ctx
+
+work' :: Context -> BS.ByteString -> IO (Maybe ())
+work' ctx bs = do
+  let conf = configuration ctx
+  doLog conf LOG_DEBUG $ "Received: " ++ show bs
+  case parseRequest bs of
+    Left e -> doLog conf LOG_DEBUG (show e) >> badRequest ctx
+    Right r -> doLog conf LOG_DEBUG ("Parsed: " ++ show r) >> dispatchRequest ctx r
 
 -- Under HTTP/1.0 all connections are closed unless Connection: Keep-Alive is supplied
 -- Under HTTP/1.1 all connections are open unless Connection: close is supplied
