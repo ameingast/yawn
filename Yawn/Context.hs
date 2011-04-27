@@ -8,6 +8,10 @@ module Yawn.Context (
   put,
   putResponse,
   close,
+  debug,
+  info,
+  error,
+  failure,
   mimeTypes
 ) where
 
@@ -15,14 +19,14 @@ import Control.Concurrent (MVar)
 import System.IO (Handle, hClose)
 import Yawn.Configuration (Configuration, socketBufSize, requestTimeOut)
 import Yawn.HTTP.Response
-import Yawn.Util.Counter (Counter)
+import Yawn.Logger (Level(LOG_DEBUG, LOG_INFO, LOG_ERROR), doLog)
 import Yawn.Mime (MimeDictionary)
-import qualified Yawn.Network as Network (receive, receiveBlocking, receiveBytes, send)
+import Yawn.Util.Counter (Counter)
 import qualified Data.ByteString as BS (ByteString)
 import qualified Data.ByteString.Char8 as BS8 (pack)
+import qualified Yawn.Network as Network (receive, receiveBlocking, receiveBytes, send)
 
 -- TODO: rename get, put and close
---       add logger method here so i can get rid of all the > let conf = configuration ctx < bloat
 data Context = Ctx {
   configuration :: Configuration,
   mimeTypes     :: MimeDictionary,
@@ -31,19 +35,27 @@ data Context = Ctx {
   getBytes      :: Int -> IO (Maybe (BS.ByteString)),
   put           :: BS.ByteString -> IO (Maybe ()),
   putResponse   :: Response -> IO (Maybe ()),
-  close         :: IO ()
+  close         :: IO (),
+  debug         :: String -> IO (),
+  info          :: String -> IO (),
+  failure       :: String -> IO ()
 }
 
 makeContext :: Configuration -> MimeDictionary -> MVar () -> Handle -> Context
-makeContext c d l h = 
-  Ctx { configuration = c,
-        mimeTypes = d,
-        get = Network.receive h bufSize,
-        getBytes = Network.receiveBytes h bufSize timeOut,
-        getBlocking = Network.receiveBlocking h bufSize timeOut,
-        put = put',
-        putResponse = put' . BS8.pack . show,
-        close = hClose h }
-  where timeOut = requestTimeOut c
-        bufSize = socketBufSize c
-        put' = Network.send h l
+makeContext conf dict lock handle = 
+  Ctx { configuration = conf,
+        mimeTypes     = dict,
+        get           = Network.receive handle bufSize,
+        getBytes      = Network.receiveBytes handle bufSize timeOut,
+        getBlocking   = Network.receiveBlocking handle bufSize timeOut,
+        put           = put',
+        putResponse   = put' . BS8.pack . show,
+        close         = hClose handle,
+        debug         = log' LOG_DEBUG, 
+        info          = log' LOG_INFO, 
+        failure       = log' LOG_ERROR }
+  where 
+    timeOut = requestTimeOut conf
+    bufSize = socketBufSize conf
+    put'    = Network.send handle lock
+    log'    = doLog conf

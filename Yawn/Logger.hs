@@ -1,6 +1,7 @@
 module Yawn.Logger(
   Level (LOG_INFO, LOG_DEBUG, LOG_ERROR),
   doLog,
+  system,
   trace
 ) where
 
@@ -21,6 +22,9 @@ instance Show Level where
 -- re-opened on each doLog-call
 doLog :: Show a => Configuration -> Level -> a -> IO ()
 doLog c l s = formatMessage s l >>= writeOut c l
+
+system :: Show a => a -> IO ()
+system s = formatMessage s LOG_INFO >>= putStrLn
 
 trace :: Show a => a -> IO ()
 trace s = formatMessage s LOG_TRACE >>= putStrLn

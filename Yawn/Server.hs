@@ -7,11 +7,11 @@ import Control.Exception (bracket)
 import Network (Socket, PortID (PortNumber), listenOn, sClose, accept)
 import System.IO (BufferMode (NoBuffering), hSetBuffering)
 import Yawn.Configuration (Configuration, port)
-import Yawn.Context (Context, makeContext, configuration, get, getBlocking, getBytes, close)
+import Yawn.Context (Context, makeContext, get, getBlocking, getBytes, close, info, failure)
 import Yawn.Dispatcher (dispatchRequest, badRequest)
 import Yawn.HTTP.Request
 import Yawn.HTTP.RequestParser (parse)
-import Yawn.Logger (Level (LOG_DEBUG, LOG_INFO), doLog)
+import Yawn.Logger (system, trace)
 import Yawn.Mime (MimeDictionary)
 import Yawn.Util.Counter (makeCounter)
 import Yawn.Util.Maybe (liftIOMaybe)
@@ -25,7 +25,7 @@ start conf dict =
 
 startSocket :: Configuration -> MimeDictionary -> Socket -> IO ()
 startSocket conf dict socket = do
-  doLog conf LOG_DEBUG $ "Listening on port: " ++ (show $ port conf)
+  system $ "Listening on port: " ++ (show $ port conf)
   lock <- newMVar ()
   loop conf dict socket lock
 
@@ -34,43 +34,38 @@ startSocket conf dict socket = do
 loop :: Configuration -> MimeDictionary -> Socket -> MVar () -> IO ()
 loop conf dict socket l = do
   (h, n, p) <- accept socket
-  doLog conf LOG_INFO $ "Accepted connection from " ++ n ++ ":" ++ show p
   hSetBuffering h NoBuffering
-  forkIO $ work $ makeContext conf dict l h
+  let context = makeContext conf dict l h
+  info context $ "Accepted connection from " ++ n ++ ":" ++ show p
+  forkIO $ work context 
   loop conf dict socket l
 
 -- TODO: only use close for http/1.0 connections and use a timeout for 1.1
 work :: Context -> IO ()
 work ctx  = do
-  liftIOMaybe Nothing (work' ctx) (get ctx)
+  liftIOMaybe Nothing (parseRequest ctx) (get ctx)
   -- if keep-alive && <= keep-alive timeout listen for more input
   close ctx
 
-work' :: Context -> BS.ByteString -> IO (Maybe ())
-work' ctx bs = do
-  let conf = configuration ctx
-  doLog conf LOG_DEBUG $ "Received: " ++ show bs
+parseRequest :: Context -> BS.ByteString -> IO (Maybe ())
+parseRequest ctx bs = do
+  trace $ "Parsing input: " ++ show bs
   counter <- makeCounter 0
   parse (getBlocking ctx counter) bs >>= \p -> case p of 
-    Left e -> doLog conf LOG_DEBUG (show e) >> badRequest ctx
-    Right parsed -> handleParse ctx parsed
+    Left e -> failure ctx (show e) >> badRequest ctx
+    Right parsed -> dispatchParse ctx parsed
 
-handleParse :: Context -> (BS.ByteString, Request) -> IO (Maybe ())
-handleParse ctx (unconsumed, r) = do
-  let conf = configuration ctx
-  doLog conf LOG_DEBUG ("Parsed request: " ++ show r) 
+dispatchParse :: Context -> (BS.ByteString, Request) -> IO (Maybe ())
+dispatchParse ctx (unconsumed, r) = do
+  trace $ "Parsed request: " ++ show r
   dispatchRequest ctx =<< addBody ctx (unconsumed, r)
 
 addBody :: Context -> (BS.ByteString, Request) -> IO (Request)
-addBody ctx (unconsumed, r) = do
-  let conf = configuration ctx
-  case contentLength r of 
-    0 -> return r
-    len -> do 
-      let remainingLength = len - BS.length unconsumed
-      getBytes ctx remainingLength >>= \rest -> case rest of
-        Nothing -> return r
-        Just rest' -> do
-          let fullBody = BS8.unpack $ unconsumed `BS.append` rest'
-          doLog conf LOG_DEBUG $ "Received request body: " ++ show fullBody
-          return $ r { body = fullBody }
+addBody ctx (unconsumed, r) = case contentLength r of 
+  0 -> return r
+  len -> getBytes ctx (len - BS.length unconsumed) >>= \rest -> case rest of
+    Nothing -> return $ r { body = BS8.unpack unconsumed }
+    Just rest' -> do
+      let fullBody = BS8.unpack $ unconsumed `BS.append` rest'
+      trace $ "Received request body: " ++ show fullBody
+      return $ r { body = fullBody }

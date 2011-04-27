@@ -8,7 +8,7 @@ import Control.Monad (liftM2)
 import System.FilePath (takeExtension) 
 import Text.ParserCombinators.Parsec
 import Yawn.Configuration (Configuration, mimeFile)
-import Yawn.Logger (Level (LOG_ERROR), doLog)
+import Yawn.Logger (system)
 import qualified System.IO.Error as IOError 
 
 type MimeDictionary = [(String, [String])]
@@ -16,9 +16,9 @@ type MimeDictionary = [(String, [String])]
 loadMimeTypes :: Configuration -> IO (Maybe MimeDictionary)
 loadMimeTypes conf = do
   IOError.try (readFile $ mimeFile conf) >>= \c -> case c of
-    Left e -> doLog conf LOG_ERROR e >> return Nothing
+    Left e -> system (show e) >> return Nothing
     Right content -> case parseMime content of
-      Left e -> doLog conf LOG_ERROR e >> return Nothing
+      Left e -> system (show e) >> return Nothing
       Right ok -> return $ Just ok
 
 mimeType :: MimeDictionary -> FilePath -> Maybe (String)
