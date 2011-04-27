@@ -2,7 +2,6 @@ module Yawn.Server(
   start
 ) where
 
--- import Yawn.HTTP.Request (Request, HttpVersion(HTTP_1_0, HTTP_1_1), findHeader, version)
 import Control.Concurrent (MVar, newMVar, forkIO)
 import Control.Exception (bracket)
 import Network (Socket, PortID (PortNumber), listenOn, sClose, accept)
@@ -10,9 +9,11 @@ import System.IO (BufferMode (NoBuffering), hSetBuffering)
 import Yawn.Configuration (Configuration, port)
 import Yawn.Context (Context, makeContext, configuration, get, close)
 import Yawn.Dispatcher (dispatchRequest, badRequest)
+import Yawn.HTTP.Request (Request, HttpVersion(HTTP_1_0, HTTP_1_1), findHeader, version)
 import Yawn.HTTP.RequestParser (parse)
 import Yawn.Logger (Level (LOG_DEBUG, LOG_INFO), doLog)
 import Yawn.Mime (MimeDictionary)
+import Yawn.Util.Counter (Counter, incCounter, makeCounter)
 import Yawn.Util.Maybe (liftIOMaybe)
 import qualified Data.ByteString as BS (ByteString, empty)
 
@@ -50,20 +51,27 @@ work' ctx bs = do
   doLog conf LOG_DEBUG $ "Received: " ++ show bs
   -- only call loadMoreInput k times and introduce a timeout + blocking call
   -- since attoparsec seems to call it a lot
-  parsed <- parse (loadInput ctx) bs
-  case parsed of
+  counter <- makeCounter 0
+  parse (loadInput ctx counter) bs >>= \p -> case p of 
     Left e -> doLog conf LOG_DEBUG (show e) >> badRequest ctx
     Right r -> doLog conf LOG_DEBUG ("Parsed: " ++ show r) >> dispatchRequest ctx r
 
-loadInput :: Context -> IO (BS.ByteString)
-loadInput ctx = get ctx >>= \input -> case input of 
-  Nothing -> return BS.empty
-  Just x -> return x
+-- FIXME: blocking algorithm: block for 2**counter MS up to Conf.timeout
+-- if last data received == CRLFCRLF 
+--  then loadInputFastBlock ctx cnt
+--  else loadInputSlowBlock ctx cnt
+loadInput :: Context -> Counter -> IO (BS.ByteString)
+loadInput ctx cnt = do
+  oldCount <- incCounter cnt
+  if oldCount > 4 then return BS.empty
+  else get ctx >>= \input -> case input of 
+    Nothing -> return BS.empty
+    Just x -> return x
 
 -- Under HTTP/1.0 all connections are closed unless Connection: Keep-Alive is supplied
 -- Under HTTP/1.1 all connections are open unless Connection: close is supplied
---isKeepAlive :: Request -> Bool
---isKeepAlive r = case findHeader "Connection" r of 
---  Nothing -> version r == HTTP_1_1
---  Just con -> if version r == HTTP_1_0 then "Keep-Alive" == con
---              else "close" /= con
+isKeepAlive :: Request -> Bool
+isKeepAlive r = case findHeader "Connection" r of 
+  Nothing -> version r == HTTP_1_1
+  Just con -> if version r == HTTP_1_0 then "Keep-Alive" == con
+              else "close" /= con

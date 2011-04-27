@@ -2,15 +2,13 @@ module Yawn.HTTP.Request where
 
 import Network.URL (URL, importParams, url_params, url_path)
 import qualified Data.Map as M (Map, lookup)
-import qualified Data.ByteString as BS (ByteString)
-import qualified Data.ByteString.Char8 as BS8 (unpack)
 
 data Request = Request {
   method :: RequestMethod,
   url :: URL,
   version :: HttpVersion,
-  headers :: M.Map BS.ByteString BS.ByteString,
-  body :: BS.ByteString
+  headers :: M.Map String String,
+  body :: String
 } deriving (Show, Eq)
 
 data RequestMethod =  GET |
@@ -32,10 +30,10 @@ getParams :: Request -> [(String, String)]
 getParams = url_params . url
 
 postParams :: Request -> Maybe [(String, String)]
-postParams = importParams . BS8.unpack . body
+postParams = importParams . body
 
 requestPath :: Request -> String
 requestPath = url_path . url
 
-findHeader :: BS.ByteString -> Request -> Maybe BS.ByteString
+findHeader :: String -> Request -> Maybe String 
 findHeader name = M.lookup name . headers
