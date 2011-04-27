@@ -18,8 +18,6 @@ instance Show Level where
   show LOG_ERROR = "error"
   show LOG_TRACE = "trace"
 
--- TODO: introduce logFileHandles into Configuration so they don't have to be 
--- re-opened on each doLog-call
 doLog :: Show a => Configuration -> Level -> a -> IO ()
 doLog c l s = formatMessage s l >>= writeOut c l
 

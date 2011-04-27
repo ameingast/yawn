@@ -31,6 +31,7 @@ startSocket conf dict socket = do
 
 -- TODO: add First parameter. if first then less timeout else http-1.1 std timeout
 --       bind socket properly
+--       catch IO exception on accept hSetBuffering
 loop :: Configuration -> MimeDictionary -> Socket -> MVar () -> IO ()
 loop conf dict socket l = do
   (h, n, p) <- accept socket
@@ -57,15 +58,15 @@ parseRequest ctx bs = do
 
 dispatchParse :: Context -> (BS.ByteString, Request) -> IO (Maybe ())
 dispatchParse ctx (unconsumed, r) = do
-  trace $ "Parsed request: " ++ show r
-  dispatchRequest ctx =<< addBody ctx (unconsumed, r)
+  fullRequest <- addBody ctx (unconsumed, r)
+  trace $ "Parsed request: " ++ show fullRequest
+  dispatchRequest ctx fullRequest
 
 addBody :: Context -> (BS.ByteString, Request) -> IO (Request)
 addBody ctx (unconsumed, r) = case contentLength r of 
   0 -> return r
   len -> getBytes ctx (len - BS.length unconsumed) >>= \rest -> case rest of
-    Nothing -> return $ r { body = BS8.unpack unconsumed }
+    Nothing -> return $ r { body = unconsumed }
     Just rest' -> do
-      let fullBody = BS8.unpack $ unconsumed `BS.append` rest'
-      trace $ "Received request body: " ++ show fullBody
+      let fullBody = unconsumed `BS.append` rest'
       return $ r { body = fullBody }

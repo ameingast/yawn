@@ -33,7 +33,7 @@ parseRequest =
     (parseURL <* P8.char8 ' ')
     (parseHttpVersion <* P8.endOfLine)
     ((P.many parseHeader >>= return . M.fromList) <* P8.endOfLine)
-    (return "")
+    (return BS.empty)
 
 parseURL :: P.Parser (URL)
 parseURL = 
