@@ -4,6 +4,7 @@ module Yawn.Mime (
   mimeType
 ) where
 
+import Control.Applicative hiding (many, (<|>))
 import Control.Monad (liftM2)
 import System.FilePath (takeExtension) 
 import Text.ParserCombinators.Parsec
@@ -22,18 +23,17 @@ loadMimeTypes conf = do
       Right ok -> return $ Just ok
 
 mimeType :: MimeDictionary -> FilePath -> Maybe (String)
-mimeType d p = let ext = tail $ takeExtension p
-               in case filter (\(_, exts) -> elem ext exts) d of
-                 [] -> Nothing
-                 ((a,_):_) -> Just a
+mimeType d p = case takeExtension p of
+  '.':ext -> case filter (\(_, exts) -> elem ext exts) d of
+    [] -> Nothing
+    ((a,_):_) -> Just a
+  _ -> Nothing
 
 parseMime :: String -> Either ParseError [(String, [String])]
 parseMime s = parse file "Mime Type Error" s 
 
 file :: CharParser () [(String, [String])]
-file = do
-  many (comments <|> string "\n")
-  many line
+file = many (comments <|> string "\n") *> many line
 
 comments :: CharParser () String
 comments = char '#' >> anyChar `manyTill` char '\n'
@@ -42,11 +42,8 @@ line :: CharParser () (String, [String])
 line = liftM2 (,) (many1 symbol) (extensions <|> noExtensions)
 
 extensions :: CharParser () [String]
-extensions = do
-  many whiteSpace
-  exts <- many1 symbol `sepBy` many1 whiteSpace
-  eol
-  return exts
+extensions =
+  many whiteSpace *> many1 symbol `sepBy` many1 whiteSpace <* eol
 
 noExtensions :: CharParser () [String]
 noExtensions = eol >> return []

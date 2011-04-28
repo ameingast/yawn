@@ -52,28 +52,28 @@ loadConfig appRoot = IOError.try (readFile (appRoot ++ "/conf/yawn.conf")) >>= \
   Right content -> parseConfig content appRoot
     
 parseConfig :: String -> String -> IO (Maybe Configuration)
-parseConfig content appRoot = parseConfiguration content >>= \c -> case c of 
+parseConfig content appRoot = parseConfiguration appRoot content >>= \c -> case c of 
   Nothing -> return Nothing
-  Just config -> return $ Just $ config { root = appRoot }
+  Just config -> return $ Just config
 
-parseConfiguration :: String -> IO (Maybe Configuration)
-parseConfiguration s = case parseDictionary "yawn.conf" s of
+parseConfiguration :: FilePath -> String -> IO (Maybe Configuration)
+parseConfiguration appRoot s = case parseDictionary "yawn.conf" s of
   Left e -> printError e >> return Nothing
-  Right pairs -> return $ Just $ makeConfig pairs
+  Right pairs -> return $ Just $ makeConfig appRoot pairs
 
-makeConfig :: Dictionary -> Configuration
-makeConfig xs = Configuration (read $ find "port" "9000" xs)
-                              (find "host" "localhost" xs)
-                              ""
-                              (find "defaultIndexFile" "index.html" xs)
-                              (read $ find "requestTimeout" "300" xs)
-                              (read $ find "keepAliveTimeout" "15" xs)
-                              (read $ find "socketBufSize" "2048" xs)
-                              (read $ find "maxClients" "100" xs)
-                              (read $ find "showIndex" "False" xs)
-                              (find "defaultMimeType" "text/html" xs)
-                              (find "serverName" "YAWN" xs)
-                              (find "serverVersion" "0.1" xs)
+makeConfig :: FilePath -> Dictionary -> Configuration
+makeConfig appRoot xs = Configuration (read $ find "port" "9000" xs)
+                                      (find "host" "localhost" xs)
+                                      appRoot
+                                      (find "defaultIndexFile" "index.html" xs)
+                                      (read $ find "requestTimeout" "300" xs)
+                                      (read $ find "keepAliveTimeout" "15" xs)
+                                      (read $ find "socketBufSize" "2048" xs)
+                                      (read $ find "maxClients" "100" xs)
+                                      (read $ find "showIndex" "True" xs)
+                                      (find "defaultMimeType" "text/html" xs)
+                                      (find "serverName" "YAWN" xs)
+                                      (find "serverVersion" "0.1" xs)
 
 printError :: Show a => a -> IO ()
 printError e = hPutStrLn stderr $ "Unable to load configuration file " ++ show e

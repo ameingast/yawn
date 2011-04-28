@@ -40,13 +40,17 @@ instance Show StatusCode where
 data ResponseHeader = CONTENT_TYPE String 
                     | CONTENT_LENGTH Int 
                     | RESPONSE_DATE String 
-                    | SERVER_NAME String deriving Eq
+                    | SERVER_NAME String 
+                    | LAST_MODIFIED String
+                    | CONNECTION String deriving Eq
 
 instance Show ResponseHeader where
-  show (CONTENT_TYPE s) = "Content-Type: " ++ s
+  show (CONTENT_TYPE s)   = "Content-Type: " ++ s
   show (CONTENT_LENGTH l) = "Content-Length: " ++ show l
-  show (RESPONSE_DATE s) = "Date: " ++ s
-  show (SERVER_NAME s) = "Server: " ++ s
+  show (RESPONSE_DATE s)  = "Date: " ++ s
+  show (SERVER_NAME s)    = "Server: " ++ s
+  show (LAST_MODIFIED s)  = "Last-Modified: " ++ s
+  show (CONNECTION s)     = "Connection: " ++ s
 
 packResponse :: Configuration -> Response -> IO (BS.ByteString)
 packResponse conf r = do

@@ -17,4 +17,4 @@ loadConfiguration = liftIOMaybe_ hop . loadConfig
 
 loadMimeTypes :: Configuration -> IO ()
 loadMimeTypes conf = liftIOMaybe_ hop $ Mime.loadMimeTypes conf
-  where hop dict = system "Loaded mimetypes" >> Server.start conf dict 
+  where hop d = system ("Loaded " ++ show (length d) ++ " mimetypes") >> Server.start conf d

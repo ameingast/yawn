@@ -43,15 +43,16 @@ loop conf dict socket l = do
 work :: Context -> IO ()
 work ctx  = do
   -- getBlockingUntilClosed
-  get ctx >>= \i -> case i of
+  dispatchSuccess <- get ctx >>= \i -> case i of
     Nothing -> return Nothing
     Just bs -> parseRequest ctx bs >>= \r -> case r of
       Nothing -> badRequest ctx
       Just request -> do
         trace $ "Parsed request: " ++ show request
         dispatchRequest ctx request
-  -- if keep-alive && <= keep-alive timeout listen for more input
-  close ctx
+  case dispatchSuccess of 
+    Nothing -> close ctx
+    Just () -> close ctx  -- if keep-alive && <= keep-alive timeout then recurse 
 
 parseRequest :: Context -> BS.ByteString -> IO (Maybe (Request))
 parseRequest ctx bs = do
