@@ -43,14 +43,14 @@ parseURL =
 
 parseHttpMethod :: P.Parser (RequestMethod)
 parseHttpMethod =
-  (packString "GET" >> return GET) <|>
-    (packString "DELETE" >> return DELETE) <|>
-    (packString "HEAD" >> return HEAD) <|>
-    (packString "OPTIONS" >> return OPTIONS) <|>
-    (packString "CONNECT" >> return CONNECT) <|>
-    (packString "TRACE" >> return TRACE) <|>
-    (P.try (packString "POST") >> return POST) <|>
-    (packString "PUT" >> return PUT)
+  (GET <$ packString "GET")
+  <|> (DELETE <$ packString "DELETE")
+  <|> (HEAD <$ packString "HEAD")
+  <|> (OPTIONS <$ packString "OPTIONS")
+  <|> (CONNECT <$ packString "CONNECT")
+  <|> (TRACE <$ packString "TRACE")
+  <|> (POST <$ P.try (packString "POST"))
+  <|> (PUT <$ packString "PUT")
 
 parseHttpVersion :: P.Parser (HttpVersion)
 parseHttpVersion = do

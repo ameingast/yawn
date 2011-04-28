@@ -52,10 +52,11 @@ instance Show ResponseHeader where
   show (LAST_MODIFIED s)  = "Last-Modified: " ++ s
   show (CONNECTION s)     = "Connection: " ++ s
 
-packResponse :: Configuration -> Response -> IO (BS.ByteString)
+packResponse :: Configuration -> Response -> IO ((Response, BS.ByteString))
 packResponse conf r = do
-  response <- addMetaInfo conf r 
-  return $ (BS8.pack $ show response) `BS.append` (fromMaybe BS.empty $ responseBody r)
+  response <- addMetaInfo conf r
+  let bytes = (BS8.pack $ show response) `BS.append` (fromMaybe BS.empty $ responseBody r)
+  return (response, bytes)
 
 addMetaInfo :: Configuration -> Response -> IO (Response)
 addMetaInfo conf = 

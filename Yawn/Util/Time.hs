@@ -1,4 +1,5 @@
 module Yawn.Util.Time (
+  TimeString,
   getAscDate,
   getCalendarTime,
   clockTimeToAscDate

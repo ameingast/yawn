@@ -5,7 +5,6 @@ module Yawn.Context (
   get,
   getBlocking,
   getBytes,
-  put,
   putResponse,
   close,
   debug,
@@ -22,6 +21,7 @@ import Yawn.HTTP.Response
 import Yawn.Logger (Level(LOG_DEBUG, LOG_INFO, LOG_ERROR), doLog)
 import Yawn.Mime (MimeDictionary)
 import Yawn.Util.Counter (Counter)
+import Yawn.Util.Maybe
 import qualified Data.ByteString as BS (ByteString)
 import qualified Yawn.Network as Network (receive, receiveBlocking, receiveBytes, send)
 
@@ -32,8 +32,7 @@ data Context = Ctx {
   get           :: IO (Maybe (BS.ByteString)),
   getBlocking   :: Counter -> IO (Maybe (BS.ByteString)),
   getBytes      :: Int -> IO (Maybe (BS.ByteString)),
-  put           :: BS.ByteString -> IO (Maybe ()),
-  putResponse   :: Response -> IO (Maybe ()),
+  putResponse   :: Response -> IO (Maybe (Response)),
   close         :: IO (),
   debug         :: String -> IO (),
   info          :: String -> IO (),
@@ -47,16 +46,15 @@ makeContext conf dict lock handle =
         get           = Network.receive handle bufSize,
         getBytes      = Network.receiveBytes handle bufSize timeOut,
         getBlocking   = Network.receiveBlocking handle bufSize timeOut,
-        put           = put',
         putResponse   = putR,
-        close         = hClose handle,
+        close         = log' LOG_DEBUG "Closing connection." >> hClose handle,
         debug         = log' LOG_DEBUG, 
         info          = log' LOG_INFO, 
         failure       = log' LOG_ERROR }
   where 
     timeOut = requestTimeOut conf
     bufSize = socketBufSize conf
-    put'    = Network.send handle lock
     log'    = doLog conf
-    putR r  = put' =<< packResponse conf r
-
+    putR r  = do
+      (response, bytes) <- packResponse conf r
+      fromIOMaybe_ (Network.send handle lock bytes) $ \_ -> return $ Just response

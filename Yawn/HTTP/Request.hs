@@ -41,6 +41,9 @@ requestPath = url_path . url
 findHeader :: String -> Request -> Maybe String 
 findHeader name = M.lookup name . headers
 
+hasHeader :: String -> Request -> Bool
+hasHeader s r = findHeader s r /= Nothing
+
 -- catch read exceptions
 contentLength :: Request -> Int
 contentLength = read . fromMaybe "0" . findHeader "Content-Length"

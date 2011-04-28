@@ -11,14 +11,15 @@ import System.IO (Handle)
 import System.IO.Error (try)
 import Yawn.Logger (trace)
 import Yawn.Util.Counter (Counter, readCounter, incCounter)
+import Yawn.Util.Maybe
 import qualified Data.ByteString as BS (ByteString, hPut, hGetNonBlocking, null, length, append)
 
 -- TODO: replace receive* with Socket.ByteString.Lazy
 receive :: Handle -> Int -> IO (Maybe (BS.ByteString))
 receive h bufsize = do
-  tryIO (BS.hGetNonBlocking h bufsize) >>= \r -> case r of
-    Nothing -> return Nothing
-    Just d -> if BS.null d then return Nothing else return $ Just d
+  fromIOMaybe_ (tryIO (BS.hGetNonBlocking h bufsize)) $ \d -> do 
+    if BS.null d then return Nothing 
+    else return $ Just d
 
 receiveBlocking :: Handle -> Int -> Int -> Counter -> IO (Maybe (BS.ByteString))
 receiveBlocking h bufsize timeout counter = receiveBlocking' h bufsize timeout counter
@@ -32,9 +33,9 @@ receiveBlocking' h bufsize timeout cnt = do
   if timeout >= currentRequestTime * 1000000 then return Nothing 
   else do 
     threadDelay delay
-    receive h bufsize >>= \i -> case i of
-      Nothing -> incCounter cnt >> receiveBlocking' h bufsize timeout cnt
-      Just x -> do
+    fromIOMaybe 
+      (incCounter cnt >> receiveBlocking' h bufsize timeout cnt)
+      (receive h bufsize) $ \x -> do
         trace $ "receiveBlocking: " ++ show x
         return $ Just x
 
@@ -51,13 +52,14 @@ receiveBytes' h bufsize timeout len tries = do
   else do
     trace $ "Locking Thread for " ++ show delay ++ " ms"
     threadDelay delay
-    receive h bufsize >>= \i -> case i of
-      Nothing -> receiveBytes' h bufsize timeout len (tries + 1)
-      Just x -> if BS.length x >= len then return $ Just x
-                else do
-                  trace $ "receiveBytes: " ++ show x ++ "(" ++ (show $ BS.length x) ++ ")"
-                  next <- receiveBytes' h bufsize timeout (len - BS.length x) 0 
-                  return $ liftM (BS.append x) next
+    fromIOMaybe
+      (receiveBytes' h bufsize timeout len (tries + 1))
+      (receive h bufsize) $ \x -> do
+        if BS.length x >= len then return $ Just x
+        else do
+          trace $ "receiveBytes: " ++ show x ++ "(" ++ (show $ BS.length x) ++ ")"
+          next <- receiveBytes' h bufsize timeout (len - BS.length x) 0 
+          return $ liftM (BS.append x) next
 
 send :: Handle -> MVar () -> BS.ByteString -> IO (Maybe ())
 send h l bs = withMVar l (\_ -> tryIO $ BS.hPut h bs)
