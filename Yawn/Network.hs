@@ -13,6 +13,7 @@ import Yawn.Logger (trace)
 import Yawn.Util.Counter (Counter, readCounter, incCounter)
 import qualified Data.ByteString as BS (ByteString, hPut, hGetNonBlocking, null, length, append)
 
+-- TODO: replace receive* with Socket.ByteString.Lazy
 receive :: Handle -> Int -> IO (Maybe (BS.ByteString))
 receive h bufsize = do
   tryIO (BS.hGetNonBlocking h bufsize) >>= \r -> case r of

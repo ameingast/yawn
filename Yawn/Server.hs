@@ -14,9 +14,7 @@ import Yawn.HTTP.RequestParser (parse)
 import Yawn.Logger (system, trace)
 import Yawn.Mime (MimeDictionary)
 import Yawn.Util.Counter (makeCounter)
-import Yawn.Util.Maybe (liftIOMaybe)
 import qualified Data.ByteString as BS (ByteString, length, append)
-import qualified Data.ByteString.Char8 as BS8 (unpack)
 
 start :: Configuration -> MimeDictionary -> IO ()
 start conf dict = 
@@ -44,23 +42,24 @@ loop conf dict socket l = do
 -- TODO: only use close for http/1.0 connections and use a timeout for 1.1
 work :: Context -> IO ()
 work ctx  = do
-  liftIOMaybe Nothing (parseRequest ctx) (get ctx)
+  -- getBlockingUntilClosed
+  get ctx >>= \i -> case i of
+    Nothing -> return Nothing
+    Just bs -> parseRequest ctx bs >>= \r -> case r of
+      Nothing -> badRequest ctx
+      Just request -> do
+        trace $ "Parsed request: " ++ show request
+        dispatchRequest ctx request
   -- if keep-alive && <= keep-alive timeout listen for more input
   close ctx
 
-parseRequest :: Context -> BS.ByteString -> IO (Maybe ())
+parseRequest :: Context -> BS.ByteString -> IO (Maybe (Request))
 parseRequest ctx bs = do
   trace $ "Parsing input: " ++ show bs
   counter <- makeCounter 0
   parse (getBlocking ctx counter) bs >>= \p -> case p of 
-    Left e -> failure ctx (show e) >> badRequest ctx
-    Right parsed -> dispatchParse ctx parsed
-
-dispatchParse :: Context -> (BS.ByteString, Request) -> IO (Maybe ())
-dispatchParse ctx (unconsumed, r) = do
-  fullRequest <- addBody ctx (unconsumed, r)
-  trace $ "Parsed request: " ++ show fullRequest
-  dispatchRequest ctx fullRequest
+    Left e -> failure ctx (show e) >> return Nothing 
+    Right parsed -> return . Just =<< addBody ctx parsed
 
 addBody :: Context -> (BS.ByteString, Request) -> IO (Request)
 addBody ctx (unconsumed, r) = case contentLength r of 

@@ -23,7 +23,6 @@ import Yawn.Logger (Level(LOG_DEBUG, LOG_INFO, LOG_ERROR), doLog)
 import Yawn.Mime (MimeDictionary)
 import Yawn.Util.Counter (Counter)
 import qualified Data.ByteString as BS (ByteString)
-import qualified Data.ByteString.Char8 as BS8 (pack)
 import qualified Yawn.Network as Network (receive, receiveBlocking, receiveBytes, send)
 
 -- TODO: rename get, put and close
@@ -49,7 +48,7 @@ makeContext conf dict lock handle =
         getBytes      = Network.receiveBytes handle bufSize timeOut,
         getBlocking   = Network.receiveBlocking handle bufSize timeOut,
         put           = put',
-        putResponse   = put' . BS8.pack . show,
+        putResponse   = put' . packResponse,
         close         = hClose handle,
         debug         = log' LOG_DEBUG, 
         info          = log' LOG_INFO, 

@@ -1,5 +1,6 @@
 module Yawn.HTTP.Request where
 
+import Data.Maybe (fromMaybe)
 import Network.URL (URL, importParams, url_params, url_path)
 import qualified Data.ByteString as BS (ByteString)
 import qualified Data.ByteString.Char8 as BS8 (unpack)
@@ -40,10 +41,9 @@ requestPath = url_path . url
 findHeader :: String -> Request -> Maybe String 
 findHeader name = M.lookup name . headers
 
+-- catch read exceptions
 contentLength :: Request -> Int
-contentLength r = case findHeader "Content-Length" r of
-  Nothing -> 0 
-  Just s -> read s
+contentLength = read . fromMaybe "0" . findHeader "Content-Length"
 
 -- Under HTTP/1.0 all connections are closed unless Connection: Keep-Alive is supplied
 -- Under HTTP/1.1 all connections are open unless Connection: close is supplied

@@ -8,12 +8,13 @@ import Control.Monad (liftM, liftM2)
 import System.Directory (doesFileExist, doesDirectoryExist, getDirectoryContents)
 import System.IO.Error (try)
 import Yawn.Configuration (Configuration, publicRoot, defaultIndexFile, showIndex, defaultMimeType)
-import Yawn.Context (Context, configuration, put, putResponse, mimeTypes, debug, info, failure)
+import Yawn.Context (Context, configuration, putResponse, mimeTypes, debug, info, failure)
 import Yawn.HTTP.Request
 import Yawn.HTTP.Response
 import Yawn.Mime (mimeType)
 import Yawn.Util.List (split)
 import qualified Data.ByteString as BS (readFile)
+import qualified Data.ByteString.Char8 as BS8 (pack)
 
 dispatchRequest :: Context -> Request -> IO (Maybe ())
 dispatchRequest ctx r = do
@@ -43,7 +44,8 @@ deliverIndex ctx path = do
   debug ctx $ "Serving index: " ++ path
   try (getDirectoryContents path) >>= \c -> case c of
     Left e -> (failure ctx $ "Unable to index directory " ++ show e) >> internalError ctx
-    Right list -> putResponse ctx $ Response OK [CONTENT_TYPE "text/html"] (show list)
+    Right list -> do
+      putResponse ctx $ Response OK [CONTENT_TYPE "text/html"] $ Just $ BS8.pack (show list)
 
 deliverFile :: Context -> FilePath -> IO (Maybe ())
 deliverFile ctx path = do
@@ -51,8 +53,7 @@ deliverFile ctx path = do
   try (BS.readFile path) >>= \f -> case f of
     Left _e -> fileNotFound ctx
     Right content -> do 
-      putResponse ctx $ Response OK [CONTENT_TYPE (contentType ctx path)] []
-      put ctx content
+      putResponse ctx $ Response OK [CONTENT_TYPE (contentType ctx path)] $ Just content
 
 badRequest :: Context -> IO (Maybe ())
 badRequest ctx = dispatchError ctx BAD_REQUEST
@@ -66,7 +67,7 @@ fileNotFound ctx = dispatchError ctx NOT_FOUND
 dispatchError :: Context -> StatusCode -> IO (Maybe ())
 dispatchError ctx sc = do
   failure ctx $ show sc
-  putResponse ctx $ Response sc [] ""
+  putResponse ctx $ Response sc [] Nothing
 
 contentType :: Context -> FilePath -> String
 contentType ctx path = case mimeType (mimeTypes ctx) path of
