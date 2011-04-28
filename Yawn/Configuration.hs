@@ -9,6 +9,8 @@ module Yawn.Configuration (
   maxClients,
   showIndex,
   defaultMimeType,
+  serverName,
+  serverVersion,
   mimeFile,
   logRoot,
   publicRoot,
@@ -21,16 +23,18 @@ import Yawn.Util.List (find)
 import qualified System.IO.Error as IOError (try)
 
 data Configuration = Configuration { 
-  port :: Integer,
-  host :: String,
-  root :: FilePath,
-  defaultIndexFile :: String,
-  requestTimeOut :: Int,
-  keepAliveTimeOut :: Int,
-  socketBufSize :: Int,
-  maxClients :: Int,
-  showIndex :: Bool,
-  defaultMimeType :: String
+  port              :: Integer,
+  host              :: String,
+  root              :: FilePath,
+  defaultIndexFile  :: String,
+  requestTimeOut    :: Int,
+  keepAliveTimeOut  :: Int,
+  socketBufSize     :: Int,
+  maxClients        :: Int,
+  showIndex         :: Bool,
+  defaultMimeType   :: String,
+  serverName        :: String,
+  serverVersion     :: String
 } deriving (Show, Eq)
 
 mimeFile :: Configuration -> FilePath
@@ -67,6 +71,8 @@ makeConfig xs = Configuration (read $ find "port" "9000" xs)
                               (read $ find "socketBufSize" "2048" xs)
                               (read $ find "maxClients" "100" xs)
                               (read $ find "showIndex" "False" xs)
+                              (read $ find "serverName" "YAWN" xs)
+                              (read $ find "serverVersion" "0.1" xs)
                               (find "defaultMimeType" "text/html" xs)
 
 printError :: Show a => a -> IO ()
