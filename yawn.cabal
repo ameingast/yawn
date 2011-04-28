@@ -13,6 +13,7 @@ Cabal-version:       >=1.2
 Executable yawn 
     Main-is:        Main.hs
     ghc-options:    -Wall -fno-warn-unused-do-bind -O3
+    Build-Depends:  old-locale >= 1
     Build-Depends:  network >= 2.3
     Build-Depends:  containers >= 0.4
     Build-Depends:  parsec >= 3

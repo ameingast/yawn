@@ -48,7 +48,7 @@ makeContext conf dict lock handle =
         getBytes      = Network.receiveBytes handle bufSize timeOut,
         getBlocking   = Network.receiveBlocking handle bufSize timeOut,
         put           = put',
-        putResponse   = put' . packResponse,
+        putResponse   = putR,
         close         = hClose handle,
         debug         = log' LOG_DEBUG, 
         info          = log' LOG_INFO, 
@@ -58,3 +58,4 @@ makeContext conf dict lock handle =
     bufSize = socketBufSize conf
     put'    = Network.send handle lock
     log'    = doLog conf
+    putR r  = put' =<< packResponse r
