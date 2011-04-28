@@ -1,10 +1,11 @@
 module Yawn.HTTP.Response where
 
 import Data.Maybe (fromMaybe)
+import Yawn.Configuration (Configuration, serverName, serverVersion)
 import Yawn.Util.List (concatWith)
-import Yawn.Util.Time (getAscDate)
 import qualified Data.ByteString as BS (ByteString, empty, length, append)
 import qualified Data.ByteString.Char8 as BS8 (pack)
+import qualified Yawn.Util.Time as Time (getAscDate)
 
 data Response = Response {
   statusCode :: StatusCode,
@@ -13,8 +14,7 @@ data Response = Response {
 } deriving Eq
 
 instance Show Response where
-  show (Response sc hs body) = "HTTP/1.1 " ++ show sc ++ 
-                                concatWith "\n" hs ++ "\r\n\r\n<BINARY>" 
+  show (Response sc hs _) = "HTTP/1.1 " ++ show sc ++ concatWith "\n" hs ++ "\r\n\r\n" 
 
 data StatusCode = OK |
                   CREATED |
@@ -48,10 +48,29 @@ instance Show ResponseHeader where
   show (RESPONSE_DATE s) = "Date: " ++ s
   show (SERVER_NAME s) = "Server: " ++ s
 
-packResponse :: Response -> IO (BS.ByteString)
-packResponse (Response sc hs b) = do
-  date <- getAscDate
-  let body = fromMaybe BS.empty b
-  let headers = RESPONSE_DATE date : (CONTENT_LENGTH (BS.length body) : hs)
-  let header = BS8.pack $ "HTTP/1.1 " ++ show sc ++ concatWith "\r\n" headers ++ "\r\n\r\n"
-  return $ header `BS.append` body 
+packResponse :: Configuration -> Response -> IO (BS.ByteString)
+packResponse conf r = do
+  response <- addMetaInfo conf r 
+  return $ (BS8.pack $ show response) `BS.append` (fromMaybe BS.empty $ responseBody r)
+
+addMetaInfo :: Configuration -> Response -> IO (Response)
+addMetaInfo conf = 
+  addTimeStamp . (addServer conf . addContentLength)
+
+addContentLength :: Response -> Response
+addContentLength r = 
+  let content_length = BS.length $ fromMaybe BS.empty $ responseBody r 
+  in addHeader r $ CONTENT_LENGTH content_length
+
+addServer :: Configuration -> Response -> Response
+addServer conf r = 
+  let server = serverName conf ++ "/" ++ serverVersion conf
+  in addHeader r $ SERVER_NAME server 
+
+addTimeStamp :: Response -> IO (Response)
+addTimeStamp r =
+  Time.getAscDate >>= return . addHeader r . RESPONSE_DATE
+
+addHeader :: Response -> ResponseHeader -> Response
+addHeader r@(Response _ headers _) h = 
+  r { entityHeaders = h:headers }

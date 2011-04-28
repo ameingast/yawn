@@ -71,9 +71,9 @@ makeConfig xs = Configuration (read $ find "port" "9000" xs)
                               (read $ find "socketBufSize" "2048" xs)
                               (read $ find "maxClients" "100" xs)
                               (read $ find "showIndex" "False" xs)
-                              (read $ find "serverName" "YAWN" xs)
-                              (read $ find "serverVersion" "0.1" xs)
                               (find "defaultMimeType" "text/html" xs)
+                              (find "serverName" "YAWN" xs)
+                              (find "serverVersion" "0.1" xs)
 
 printError :: Show a => a -> IO ()
 printError e = hPutStrLn stderr $ "Unable to load configuration file " ++ show e

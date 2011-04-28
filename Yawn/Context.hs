@@ -58,4 +58,5 @@ makeContext conf dict lock handle =
     bufSize = socketBufSize conf
     put'    = Network.send handle lock
     log'    = doLog conf
-    putR r  = put' =<< packResponse r
+    putR r  = put' =<< packResponse conf r
+
