@@ -2,7 +2,7 @@ CABAL 	= cabal
 REPL 	= ghci
 EXE 	= dist/build/yawn/yawn
 
-all: 	repl	
+all: 	repl
 
 configure:
 	@$(CABAL) configure
@@ -25,6 +25,9 @@ profile:
 
 repl:
 	@$(REPL) Main.hs
+
+wc:
+	find Yawn -iname "*.hs" | xargs wc -l
 
 clean:
 	@$(CABAL) clean
