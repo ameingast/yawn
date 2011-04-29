@@ -63,7 +63,7 @@ parseConfiguration appRoot s = case parseDictionary "yawn.conf" s of
 
 makeConfig :: FilePath -> Dictionary -> Configuration
 makeConfig appRoot xs = Configuration (read $ find "port" "9000" xs)
-                                      (find "host" "localhost" xs)
+                                      (find "host" "127.0.0.1" xs)
                                       appRoot
                                       (find "defaultIndexFile" "index.html" xs)
                                       (read $ find "requestTimeout" "300" xs)

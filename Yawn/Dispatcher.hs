@@ -57,6 +57,7 @@ deliverIndex ctx path = do
 deliverFile :: Context -> FilePath -> IO (Maybe (Response))
 deliverFile ctx path = do
   debug ctx $ "Serving file: " ++ path
+  -- check for Header If-Modified-Since
   fromIOMaybe (fileNotFound ctx) (readFileAndModTime ctx path) $ \(modTime, content) -> do
     let hs = [CONTENT_TYPE (contentType ctx path), LAST_MODIFIED modTime]
     putResponse ctx $ Response OK hs $ Just content

@@ -2,11 +2,13 @@ module Yawn.Network (
   receive,
   receiveBlocking,
   receiveBytes,
-  send
+  send,
+  bindServer
 ) where
 
 import Control.Concurrent (MVar, withMVar, threadDelay)
 import Control.Monad (liftM)
+import Network.Socket hiding (send)
 import System.IO (Handle)
 import System.IO.Error (try)
 import Yawn.Logger (trace)
@@ -68,3 +70,19 @@ tryIO :: IO (a) -> IO (Maybe a)
 tryIO f = try f >>= \o -> case o of
   Left e -> trace (show e) >> return Nothing
   Right ok -> return $ Just ok
+
+bindServer :: Int -> String -> IO (Socket)
+bindServer bindPort bindHost = do
+  sock <- socket AF_INET Stream 0
+  addr <- getHostAddr bindPort bindHost
+  trace $ "Binding: " ++ show addr
+  setSocketOption sock ReuseAddr 1
+  bindSocket sock addr
+  listen sock 150
+  return sock
+
+getHostAddr :: Int -> String -> IO (SockAddr)
+getHostAddr p s = do
+  h <- if s == "*" then return iNADDR_ANY else inet_addr s
+  return $ SockAddrInet (fromIntegral p) h
+
