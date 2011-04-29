@@ -24,7 +24,7 @@ profile:
 	@$(CABAL) build
 
 repl:
-	@$(REPL) Main.hs
+	@$(REPL) -isrc src/Main.hs
 
 wc:
 	find Yawn -iname "*.hs" | xargs wc -l
