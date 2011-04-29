@@ -4,6 +4,7 @@ module Yawn.Dispatcher (
   badRequest
 ) where
 
+import Network.URL (url_path)
 import Control.Monad (liftM, liftM2)
 import System.Directory (doesFileExist, doesDirectoryExist)
 import Yawn.Configuration (Configuration, publicRoot, defaultIndexFile, showIndex, defaultMimeType)
@@ -19,7 +20,7 @@ import qualified Data.ByteString.Char8 as BS8 (pack)
 dispatchRequest :: Context -> Request -> IO (Maybe (Response))
 dispatchRequest ctx r = do
   info ctx $ (show $ method r) ++ " " ++ (requestPath r)
-  let safeUrl = not $ elem ".." $ split (== '/') (localPath ctx r)
+  let safeUrl = not $ elem ".." $ split (== '/') (url_path (url r))
   if not safeUrl then fileNotFound ctx
   else case method r of
     _ ->  dispatchGet ctx r
