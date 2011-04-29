@@ -1,8 +1,10 @@
-CABAL 	= cabal
-REPL 	= ghci
-EXE 	= dist/build/yawn/yawn
-MAIN 	= Main.hs
-SRC_DIR = src
+CABAL 		= cabal
+REPL 		= ghci
+EXE 		= dist/build/yawn/yawn
+SRC_DIR 	= src
+TEST_DIR 	= test
+MAIN 		= Main.hs
+TEST_MAIN 	= Main.hs
 
 all: 	repl
 
@@ -26,7 +28,10 @@ profile:
 	@$(CABAL) build
 
 repl:
-	@$(REPL) -i$(SRC_DIR) $(SRC_DIR)/$(MAIN)
+	@cd $(SRC_DIR) && $(REPL) $(MAIN)
+
+tests:
+	@cd $(TEST_DIR) && $(REPL) -i../$(SRC_DIR) $(TEST_MAIN)
 
 wc:
 	find $(SRC_DIR) -iname "*.hs" | xargs wc -l

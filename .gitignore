@@ -1,6 +1,7 @@
+.DS_Store
 *.hi
 *.o
 *.swp
 dist/
-www
+test/www/log/*.log
 TODO.markdown

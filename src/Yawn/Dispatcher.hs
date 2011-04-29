@@ -27,7 +27,7 @@ dispatchRequest ctx r = do
 dispatchGet :: Context -> Request -> IO (Maybe (Response))
 dispatchGet ctx r = do
   let conf = configuration ctx
-  let path = localPath ctx r 
+  let path = localPath ctx r
   let indexFile = path ++ "/" ++ defaultIndexFile conf
   deliverDefaultIndexFile <- shouldDeliverDefaultIndexFile path indexFile
   deliverDirectoryIndex <- shouldDeliverDirectoryIndex conf path

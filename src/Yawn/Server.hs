@@ -53,8 +53,9 @@ work' ctx =
     fromIOMaybe (badRequest ctx) (parseRequest ctx bs) $ \request -> do 
       trace $ "Parsed request: " ++ show request
       response <- dispatchRequest ctx request
-      if isKeepAlive request then trace "KEEP-ALIVE..." >> work' ctx
-      else return response
+      --if isKeepAlive request then trace "KEEP-ALIVE..." >> work' ctx
+      --else return response
+      return response
 
 parseRequest :: Context -> BS.ByteString -> IO (Maybe (Request))
 parseRequest ctx bs = do
