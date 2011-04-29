@@ -1,10 +1,12 @@
-module Main (main) where
+module Main (
+  main
+) where
 
-import Control.Concurrent (forkIO, killThread)
-import Yawn.Application (start)
+import Test.HUnit (runTestTT)
+import Yawn.Test.Common (withServer)
+import qualified Yawn.Test.BlackBox.ParserTest as ParserTest (tests)
 
 main :: IO ()
-main = do
-  serverThread <- forkIO $ start "www"
-  -- run tests in here
-  killThread serverThread
+main = withServer "www" $ do
+  runTestTT ParserTest.tests
+  return ()

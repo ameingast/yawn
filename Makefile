@@ -5,6 +5,7 @@ SRC_DIR 	= src
 TEST_DIR 	= test
 MAIN 		= Main.hs
 TEST_MAIN 	= Main.hs
+RUNHASKELL 	= runhaskell
 
 all: 	repl
 
@@ -32,6 +33,9 @@ repl:
 
 tests:
 	@cd $(TEST_DIR) && $(REPL) -i../$(SRC_DIR) $(TEST_MAIN)
+
+runtest:
+	@cd $(TEST_DIR) && $(RUNHASKELL) -i../$(SRC_DIR) $(TEST_MAIN)
 
 wc:
 	find $(SRC_DIR) -iname "*.hs" | xargs wc -l
