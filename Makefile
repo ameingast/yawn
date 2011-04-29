@@ -1,6 +1,8 @@
 CABAL 	= cabal
 REPL 	= ghci
 EXE 	= dist/build/yawn/yawn
+MAIN 	= Main.hs
+SRC_DIR = src
 
 all: 	repl
 
@@ -24,10 +26,10 @@ profile:
 	@$(CABAL) build
 
 repl:
-	@$(REPL) -isrc src/Main.hs
+	@$(REPL) -i$(SRC_DIR) $(SRC_DIR)/$(MAIN)
 
 wc:
-	find Yawn -iname "*.hs" | xargs wc -l
+	find $(SRC_DIR) -iname "*.hs" | xargs wc -l
 
 clean:
 	@$(CABAL) clean
