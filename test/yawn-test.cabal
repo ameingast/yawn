@@ -1,0 +1,31 @@
+Name:                yawn-test
+Version:             0.1
+Synopsis:            A test-framework for the YAWN webserver 
+Homepage:            http://github.com/ameingast/yawn
+License:             BSD3
+Author:              Andreas Meingast
+Maintainer:          ameingast@gmail.com
+Category:            Web
+Build-type:          Simple
+Cabal-version:       >= 1.2
+
+Executable test-yawn
+  hs-source-dirs: src ../src
+
+  Main-is:        TestMain.hs
+
+  Build-Depends:  HUnit > 1.2
+  Build-Depends:  attoparsec > 0.8
+  Build-Depends:  base >= 4 
+  Build-Depends:  binary >= 0.5
+  Build-Depends:  bytestring >= 0.9
+  Build-Depends:  containers >= 0.4
+  Build-Depends:  directory >= 1.1
+  Build-Depends:  filepath >= 1.2
+  Build-Depends:  haskell98
+  Build-Depends:  network >= 2.3
+  Build-Depends:  old-locale >= 1
+  Build-Depends:  parsec >= 3
+  Build-Depends:  url >= 2
+
+  ghc-options:    -Wall -fno-warn-unused-do-bind -O3

@@ -1,44 +1,40 @@
-CABAL 		= cabal
-REPL 		= ghci
-EXE 		= dist/build/yawn/yawn
-SRC_DIR 	= src
-TEST_DIR 	= test
-MAIN 		= Main.hs
-TEST_MAIN 	= Main.hs
-RUNHASKELL 	= runhaskell
-
+## YAWN
 all: 	repl
 
 configure:
-	@$(CABAL) configure
+	@cabal configure
 
 build: 	configure
-	@$(CABAL) build
+	@cabal build
 
 doc: 	configure
-	@$(CABAL) haddock --executables
+	@cabal haddock --executables
 
 run: 	build
-	@./$(EXE)
+	@./dist/build/yawn/yawn
 
 dist: 	configure
-	@$(CABAL) sdist
-
-profile:
-	@$(CABAL) configure -p
-	@$(CABAL) build
+	@cabal sdist
 
 repl:
-	@cd $(SRC_DIR) && $(REPL) $(MAIN)
-
-tests:
-	@cd $(TEST_DIR) && $(REPL) -i../$(SRC_DIR) $(TEST_MAIN)
-
-runtest:
-	@cd $(TEST_DIR) && $(RUNHASKELL) -i../$(SRC_DIR) $(TEST_MAIN)
+	ghci -isrc src/Main.hs 
 
 wc:
-	find $(SRC_DIR) -iname "*.hs" | xargs wc -l
+	@find src -iname "*.hs" | xargs wc -l
 
 clean:
-	@$(CABAL) clean
+	@cabal clean
+	@cd test && cabal clean
+
+## YAWN-TEST 
+test-repl:
+	@cd test && ghci -i../src:src src/TestMain.hs
+
+test-run:
+	@cd test && runhaskell -i../src:src src/TestMain.hs
+
+test-configure:
+	@cd test && cabal configure
+
+test-build: test-configure
+	@cd test && cabal build
