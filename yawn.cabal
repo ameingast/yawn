@@ -1,6 +1,6 @@
 Name:                yawn
 Version:             0.1
-Synopsis:            A quick, dirty and readable webserver implemented in Haskell
+Synopsis:            A quick and dirty toy webserver implemented in Haskell
 Homepage:            http://github.com/ameingast/yawn
 License:             BSD3
 License-file:        LICENSE
