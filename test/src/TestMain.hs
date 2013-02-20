@@ -8,5 +8,5 @@ import qualified Yawn.Test.BlackBox.ParserTest as ParserTest (tests)
 
 main :: IO ()
 main = withServer "www" $ do
-  runTestTT ParserTest.tests
+  runTestTT ParserTest.tests 
   return ()

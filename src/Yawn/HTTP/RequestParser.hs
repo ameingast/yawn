@@ -2,7 +2,7 @@ module Yawn.HTTP.RequestParser (
   parse
 ) where
 
-import Control.Applicative hiding (many)
+import Control.Applicative
 import Control.Monad (liftM2, liftM5)
 import Data.Word (Word8)
 import Network.URL (URL, importURL)
@@ -32,7 +32,7 @@ parseRequest =
     (parseHttpMethod <* P8.char8 ' ')
     (parseURL <* P8.char8 ' ')
     (parseHttpVersion <* P8.endOfLine)
-    ((P.many parseHeader >>= return . M.fromList) <* P8.endOfLine)
+    ((many parseHeader >>= return . M.fromList) <* P8.endOfLine)
     (return BS.empty)
 
 parseURL :: P.Parser (URL)
@@ -66,7 +66,7 @@ parseHeader =
 parseHeaderValue :: P.Parser (BS.ByteString)
 parseHeaderValue = do
   value <- P.takeTill P8.isEndOfLine <* P8.endOfLine
-  P.many parseHeaderBody >>= return . (value:) >>= return . BS.concat
+  many parseHeaderBody >>= return . (value:) >>= return . BS.concat
 
 parseHeaderBody :: P.Parser (BS.ByteString)
 parseHeaderBody =

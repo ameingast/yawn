@@ -6,7 +6,7 @@ module Yawn.Util.Time (
 ) where
 
 import System.Locale(defaultTimeLocale)
-import Time (ClockTime, getClockTime, toCalendarTime, formatCalendarTime, calendarTimeToString)
+import System.Time (ClockTime, getClockTime, toCalendarTime, formatCalendarTime, calendarTimeToString)
 
 type TimeString = String
 

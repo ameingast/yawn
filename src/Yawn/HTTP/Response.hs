@@ -1,6 +1,7 @@
 module Yawn.HTTP.Response where
 
 import Data.Maybe (fromMaybe)
+import Yawn.HTTP.Request(HttpVersion)
 import Yawn.Configuration (Configuration, serverName, serverVersion)
 import Yawn.Util.List (concatWith)
 import qualified Data.ByteString as BS (ByteString, empty, length, append)
@@ -9,12 +10,13 @@ import qualified Yawn.Util.Time as Time (getAscDate)
 
 data Response = Response {
   statusCode :: StatusCode,
+  version :: HttpVersion,
   entityHeaders :: [ResponseHeader],
   responseBody :: Maybe (BS.ByteString)
 } deriving Eq
 
 instance Show Response where
-  show (Response sc hs _) = "HTTP/1.1 " ++ show sc ++ concatWith "\n" hs ++ "\r\n\r\n" 
+  show (Response sc v hs _) = show v ++ " " ++ show sc ++ concatWith "\n" hs ++ "\r\n\r\n" 
 
 data StatusCode = OK |
                   CREATED |
@@ -77,5 +79,5 @@ addTimeStamp r =
   Time.getAscDate >>= return . addHeader r . RESPONSE_DATE
 
 addHeader :: Response -> ResponseHeader -> Response
-addHeader r@(Response _ headers _) h = 
+addHeader r@(Response _ _ headers _) h = 
   r { entityHeaders = h:headers }

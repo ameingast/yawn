@@ -3,7 +3,7 @@ module Main (
   run
 ) where
 
-import System (getArgs)
+import System.Environment (getArgs)
 import System.Exit (ExitCode(ExitFailure), exitWith)
 import Yawn.Application as Yawn
 
